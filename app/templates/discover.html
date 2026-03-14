@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="discover-wrap">
+
+  <div class="discover-header">
+    <h1 class="discover-title">Discover</h1>
+    <p class="discover-sub">Browse movies by genre, mood, or what's showing now</p>
+  </div>
+
+  <!-- Tabs -->
+  <div class="discover-tabs" id="discover-tabs">
+    <button class="disc-tab active" onclick="loadTab(this,'popular')">Popular</button>
+    <button class="disc-tab" onclick="loadTab(this,'trending')">Trending</button>
+    <button class="disc-tab" onclick="loadTab(this,'top_rated')">Top Rated</button>
+    <button class="disc-tab" onclick="loadTab(this,'now_playing')">Now Playing</button>
+    <button class="disc-tab" onclick="loadTab(this,'upcoming')">Upcoming</button>
+  </div>
+
+  <!-- Genre filters -->
+  <div class="genre-filters" id="genre-filters">
+    <button class="genre-pill active" data-genre="" onclick="loadGenre(this, '')">All Genres</button>
+    {% for genre in ['action','comedy','drama','horror','thriller','romance','sci-fi','fantasy','crime','animation','documentary'] %}
+    <button class="genre-pill" data-genre="{{ genre }}" onclick="loadGenre(this, '{{ genre }}')">{{ genre | capitalize }}</button>
+    {% endfor %}
+  </div>
+
+  <div class="discover-grid" id="discover-grid">
+    <div class="discover-loading">Loading...</div>
+  </div>
+
+</div>
+
+<!-- Rating modal -->
+<div class="modal-overlay hidden" id="rating-modal">
+  <div class="modal-card">
+    <div class="modal-header">
+      <p class="modal-title" id="modal-movie-title">Rate Movie</p>
+      <button class="modal-close" onclick="closeModal()">&#x2715;</button>
+    </div>
+    <p style="font-size:12px;color:var(--text3);margin-bottom:14px;">Select your rating out of 10</p>
+    <div class="star-row">
+      {% for i in range(1, 11) %}
+      <button class="star-btn" data-val="{{ i }}" onclick="selectStar({{ i }})">{{ i }}</button>
+      {% endfor %}
+    </div>
+    <textarea class="modal-review" id="modal-review" placeholder="Write a short review (optional)..."></textarea>
+    <button class="btn-primary" onclick="submitRating()">Submit Rating</button>
+  </div>
+</div>
+
+<script>
+let currentMovie   = null;
+let selectedRating = 0;
+let currentTab     = 'popular';
+let currentGenre   = '';
+
+const ICON = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>`;
+
+async function loadMovies() {
+  const grid = document.getElementById('discover-grid');
+  grid.innerHTML = '<div class="discover-loading">Loading...</div>';
+  try {
+    const url  = `/api/discover?tab=${currentTab}&genre=${currentGenre}`;
+    const res  = await fetch(url);
+    const data = await res.json();
+    const movies = data.movies || [];
+    if (!movies.length) { grid.innerHTML = '<p class="discover-loading">No movies found.</p>'; return; }
+    grid.innerHTML = '';
+    movies.forEach((m, i) => {
+      const card = document.createElement('div');
+      card.className = 'disc-card card-enter';
+      card.style.animationDelay = `${i * 30}ms`;
+      const safeM = encodeURIComponent(JSON.stringify(m));
+      card.innerHTML = `
+        ${m.poster ? `<img src="${m.poster}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">` : ''}
+        <div class="disc-card-fallback" style="display:${m.poster?'none':'flex'}">${ICON}</div>
+        <div class="disc-card-overlay">
+          <p class="disc-card-title">${m.title}</p>
+          <p class="disc-card-meta">${m.year||'—'} &middot; ★ ${m.rating}/10</p>
+          <div class="disc-card-actions">
+            <button onclick="event.stopPropagation();addToWatchlist(decodeURIComponent('${safeM}'))">+ Watch</button>
+            <button onclick="event.stopPropagation();openRating(decodeURIComponent('${safeM}'))">Rate</button>
+          </div>
+        </div>`;
+      card.addEventListener('click', () => window.location.href = `/movie/${m.id}`);
+      grid.appendChild(card);
+    });
+  } catch(e) {
+    grid.innerHTML = '<p class="discover-loading">Failed to load. Please try again.</p>';
+  }
+}
+
+function loadTab(btn, tab) {
+  document.querySelectorAll('.disc-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentTab   = tab;
+  currentGenre = '';
+  document.querySelectorAll('.genre-pill').forEach(b => b.classList.remove('active'));
+  document.querySelector('.genre-pill[data-genre=""]').classList.add('active');
+  loadMovies();
+}
+
+function loadGenre(btn, genre) {
+  document.querySelectorAll('.genre-pill').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentGenre = genre;
+  loadMovies();
+}
+
+async function addToWatchlist(movieStr) {
+  const m   = JSON.parse(movieStr);
+  const res = await fetch('/api/watchlist/add', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({tmdb_id:m.id||m.tmdb_id, title:m.title, poster:m.poster||'', year:m.year||'', rating:m.rating||0})
+  });
+  const data = await res.json();
+  showToast(data.status==='added' ? `"${m.title}" added to watchlist!` : 'Already in watchlist.');
+}
+
+function openRating(movieStr) {
+  currentMovie = JSON.parse(movieStr); selectedRating = 0;
+  document.getElementById('modal-movie-title').textContent = currentMovie.title;
+  document.getElementById('modal-review').value = '';
+  document.querySelectorAll('.star-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('rating-modal').classList.remove('hidden');
+}
+function closeModal() { document.getElementById('rating-modal').classList.add('hidden'); }
+function selectStar(val) {
+  selectedRating = val;
+  document.querySelectorAll('.star-btn').forEach(b => b.classList.toggle('active', parseInt(b.dataset.val) <= val));
+}
+async function submitRating() {
+  if (!selectedRating) { showToast('Please select a rating first.'); return; }
+  const res = await fetch('/api/rate', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({tmdb_id:currentMovie.id||currentMovie.tmdb_id, title:currentMovie.title, poster:currentMovie.poster||'', year:currentMovie.year||'', rating:selectedRating, review:document.getElementById('modal-review').value})
+  });
+  const data = await res.json();
+  if (data.status==='rated') { closeModal(); showToast('Rating saved!'); }
+}
+function showToast(msg) {
+  const t = document.createElement('div'); t.className='toast'; t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.classList.add('toast-show'), 10);
+  setTimeout(() => { t.classList.remove('toast-show'); setTimeout(() => t.remove(), 300); }, 3000);
+}
+
+loadMovies();
+</script>
+{% endblock %}

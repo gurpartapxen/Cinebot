@@ -1,0 +1,240 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="movie-backdrop" {% if movie.backdrop %}style="background-image:url('{{ movie.backdrop }}')"{% endif %}>
+  <div class="movie-backdrop-overlay"></div>
+</div>
+
+<div class="movie-detail-wrap">
+
+  <!-- Hero -->
+  <div class="movie-hero">
+    <div class="movie-poster-wrap">
+      {% if movie.poster %}
+      <img src="{{ movie.poster }}" alt="{{ movie.title }}" class="movie-poster-img">
+      {% else %}
+      <div class="movie-poster-fallback">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="movie-info">
+      <div class="movie-genres">
+        {% for g in movie.genres %}
+        <span class="genre-tag">{{ g }}</span>
+        {% endfor %}
+      </div>
+      <h1 class="movie-title-big">{{ movie.title }}</h1>
+      {% if movie.tagline %}
+      <p class="movie-tagline">"{{ movie.tagline }}"</p>
+      {% endif %}
+      <div class="movie-meta-row">
+        <span class="movie-meta-pill">{{ movie.year }}</span>
+        {% if movie.runtime %}
+        <span class="movie-meta-pill">{{ movie.runtime // 60 }}h {{ movie.runtime % 60 }}m</span>
+        {% endif %}
+        <span class="movie-meta-pill movie-rating-pill">★ {{ movie.rating }}/10 ({{ "{:,}".format(movie.votes) }})</span>
+        {% if movie.director %}
+        <span class="movie-meta-pill">Dir. {{ movie.director }}</span>
+        {% endif %}
+        {% if movie.language %}
+        <span class="movie-meta-pill">{{ movie.language }}</span>
+        {% endif %}
+      </div>
+      <p class="movie-overview">{{ movie.overview }}</p>
+      <div class="movie-actions">
+        {% if movie.trailer_key %}
+        <a href="https://www.youtube.com/watch?v={{ movie.trailer_key }}" target="_blank" class="movie-btn-trailer">
+          <svg viewBox="0 0 24 24" fill="currentColor" style="width:16px;height:16px"><path d="M8 5v14l11-7z"/></svg>
+          Watch Trailer
+        </a>
+        {% endif %}
+        <button class="movie-btn-watchlist" onclick="addToWatchlist()">+ Watchlist</button>
+        <button class="movie-btn-rate" onclick="openRating()">Rate This</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cast -->
+  {% if movie.cast %}
+  <div class="movie-section">
+    <h2 class="movie-section-title">Cast</h2>
+    <div class="cast-row">
+      {% for c in movie.cast %}
+      <div class="cast-card">
+        {% if c.photo %}<img src="{{ c.photo }}" alt="{{ c.name }}" class="cast-photo">
+        {% else %}<div class="cast-photo-fallback">{{ c.name[0] if c.name else '?' }}</div>{% endif %}
+        <p class="cast-name">{{ c.name }}</p>
+        <p class="cast-char">{{ c.character }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Reviews section -->
+  <div class="movie-section">
+    <h2 class="movie-section-title">Reviews</h2>
+
+    <!-- Write review -->
+    <div class="review-write-box">
+      <div class="review-write-header">
+        <div class="review-avatar">{{ current_user.username[0].upper() }}</div>
+        <p class="review-write-label">Write a review as <strong>{{ current_user.username }}</strong></p>
+      </div>
+      <div class="review-stars-row">
+        {% for i in range(1, 11) %}
+        <button class="review-star-btn" data-val="{{ i }}" onclick="selectReviewStar({{ i }})">{{ i }}</button>
+        {% endfor %}
+      </div>
+      <textarea id="review-text" class="review-textarea" placeholder="Share your thoughts about {{ movie.title }}..."></textarea>
+      <button class="review-submit-btn" onclick="submitReview()">Post Review</button>
+    </div>
+
+    <!-- Existing reviews -->
+    <div id="reviews-list" class="reviews-list">
+      <div style="text-align:center;padding:24px;color:var(--text3);font-size:13px;">Loading reviews...</div>
+    </div>
+  </div>
+
+  <!-- Similar -->
+  {% if movie.similar %}
+  <div class="movie-section">
+    <h2 class="movie-section-title">You Might Also Like</h2>
+    <div class="similar-row">
+      {% for m in movie.similar %}
+      <a href="/movie/{{ m.id }}" class="similar-card">
+        {% if m.poster %}<img src="{{ m.poster }}" alt="{{ m.title }}">
+        {% else %}<div class="similar-fallback"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg></div>{% endif %}
+        <div class="similar-info">
+          <p class="similar-title">{{ m.title }}</p>
+          <p class="similar-meta">{{ m.year }} &middot; {{ m.rating }}/10</p>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+
+<!-- Rating modal -->
+<div class="modal-overlay hidden" id="rating-modal">
+  <div class="modal-card">
+    <div class="modal-header">
+      <p class="modal-title">Rate {{ movie.title }}</p>
+      <button class="modal-close" onclick="closeModal()">&#x2715;</button>
+    </div>
+    <div class="star-row">
+      {% for i in range(1, 11) %}
+      <button class="star-btn" data-val="{{ i }}" onclick="selectStar({{ i }})">{{ i }}</button>
+      {% endfor %}
+    </div>
+    <textarea class="modal-review" id="modal-review" placeholder="Optional short note..."></textarea>
+    <button class="btn-primary" onclick="submitRating()">Submit Rating</button>
+  </div>
+</div>
+
+<script>
+const movie = {
+  id:     {{ movie.id }},
+  title:  {{ movie.title | tojson }},
+  poster: {{ (movie.poster or '') | tojson }},
+  year:   {{ (movie.year or '') | tojson }},
+  rating: {{ movie.rating }}
+};
+let selectedRating = 0;
+let reviewRating   = 0;
+
+// ── Rating modal ────────────────────────────────
+function openRating()  { document.getElementById('rating-modal').classList.remove('hidden'); }
+function closeModal()  { document.getElementById('rating-modal').classList.add('hidden'); }
+function selectStar(v) {
+  selectedRating = v;
+  document.querySelectorAll('.star-btn').forEach(b => b.classList.toggle('active', parseInt(b.dataset.val) <= v));
+}
+async function submitRating() {
+  if (!selectedRating) { showToast('Pick a rating first.'); return; }
+  const res  = await fetch('/api/rate', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({tmdb_id:movie.id, title:movie.title, poster:movie.poster, year:movie.year, rating:selectedRating, review:document.getElementById('modal-review').value})
+  });
+  const data = await res.json();
+  if (data.status === 'rated') { closeModal(); showToast('Rating saved!'); }
+}
+
+// ── Watchlist ────────────────────────────────────
+async function addToWatchlist() {
+  const res  = await fetch('/api/watchlist/add', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({tmdb_id:movie.id, title:movie.title, poster:movie.poster, year:movie.year, rating:movie.rating})
+  });
+  const data = await res.json();
+  showToast(data.status === 'added' ? `Added to watchlist!` : 'Already in watchlist.');
+}
+
+// ── Reviews ──────────────────────────────────────
+function selectReviewStar(v) {
+  reviewRating = v;
+  document.querySelectorAll('.review-star-btn').forEach(b => b.classList.toggle('active', parseInt(b.dataset.val) <= v));
+}
+
+async function submitReview() {
+  const text = document.getElementById('review-text').value.trim();
+  if (!text) { showToast('Write something first!'); return; }
+  const res  = await fetch('/api/reviews/add', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({tmdb_id:movie.id, title:movie.title, poster:movie.poster, rating:reviewRating||null, review:text})
+  });
+  const data = await res.json();
+  if (data.status === 'saved') {
+    document.getElementById('review-text').value = '';
+    reviewRating = 0;
+    document.querySelectorAll('.review-star-btn').forEach(b => b.classList.remove('active'));
+    loadReviews();
+    showToast('Review posted!');
+  }
+}
+
+async function loadReviews() {
+  const res  = await fetch(`/api/reviews/{{ movie.id }}`);
+  const data = await res.json();
+  const list = document.getElementById('reviews-list');
+  if (!data.length) {
+    list.innerHTML = '<div style="text-align:center;padding:32px;color:var(--text3);font-size:13px;">No reviews yet. Be the first!</div>';
+    return;
+  }
+  list.innerHTML = data.map(r => `
+    <div class="review-item">
+      <div class="review-item-header">
+        <div class="review-avatar">${r.username[0].toUpperCase()}</div>
+        <div>
+          <p class="review-item-username">${r.username}</p>
+          <p class="review-item-date">${r.created_at}</p>
+        </div>
+        ${r.rating ? `<span class="review-item-rating">★ ${r.rating}/10</span>` : ''}
+      </div>
+      <p class="review-item-text">${r.review}</p>
+      <button class="review-like-btn" onclick="likeReview(${r.id}, this)">
+        ♥ ${r.likes || 0}
+      </button>
+    </div>`).join('');
+}
+
+async function likeReview(id, btn) {
+  const res  = await fetch(`/api/reviews/like/${id}`, {method:'POST'});
+  const data = await res.json();
+  btn.textContent = `♥ ${data.likes}`;
+}
+
+function showToast(msg) {
+  const t = document.createElement('div'); t.className='toast'; t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.classList.add('toast-show'), 10);
+  setTimeout(() => { t.classList.remove('toast-show'); setTimeout(()=>t.remove(),300); }, 3000);
+}
+
+loadReviews();
+</script>
+{% endblock %}

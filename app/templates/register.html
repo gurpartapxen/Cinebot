@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="auth-cinema-wrap">
+
+  <!-- Left: Cinematic slideshow -->
+  <div class="auth-cinema-left" id="auth-left">
+    <div class="auth-slides" id="auth-slides"></div>
+    <div class="auth-slide-overlay"></div>
+
+    <div class="auth-slide-loader" id="auth-loader">
+      <div class="auth-slide-loader-inner">
+        <div class="auth-cinema-logo-sm">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/>
+          </svg>
+        </div>
+        <p style="color:rgba(255,255,255,0.4);font-size:11px;margin-top:12px;letter-spacing:2px;text-transform:uppercase;">Loading scenes...</p>
+      </div>
+    </div>
+
+    <div class="auth-brand-overlay">
+      <div class="auth-cinema-logo-sm">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/>
+        </svg>
+      </div>
+      <div>
+        <p class="auth-brand-name">CineBot</p>
+        <p class="auth-brand-tag">AI Movie Companion</p>
+      </div>
+    </div>
+
+    <div class="auth-slide-info">
+      <div class="auth-slide-meta">
+        <p class="auth-slide-title" id="slide-title"></p>
+        <p class="auth-slide-year"  id="slide-year"></p>
+      </div>
+      <div class="auth-slide-dots" id="slide-dots"></div>
+    </div>
+
+    <div class="auth-cinema-quotes">
+      <p class="auth-quote">"Every great film should seem new every time you see it."</p>
+      <p class="auth-quote-attr">— Roger Ebert</p>
+    </div>
+  </div>
+
+  <!-- Right: Register form -->
+  <div class="auth-cinema-right">
+    <div class="auth-form-inner">
+      <div class="auth-form-header">
+        <h2 class="auth-form-title">Create account</h2>
+        <p class="auth-form-sub">Join thousands of film lovers on CineBot</p>
+      </div>
+      <div class="field">
+        <label>Username</label>
+        <input id="username" type="text" placeholder="yourname" autofocus>
+      </div>
+      <div class="field">
+        <label>Email</label>
+        <input id="email" type="email" placeholder="you@example.com">
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input id="password" type="password" placeholder="••••••••">
+      </div>
+      <button class="btn-primary" onclick="doRegister()">Create Account</button>
+      <p class="auth-footer">Already have an account? <a href="/login">Sign in</a></p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function doRegister() {
+  const f = document.createElement('form');
+  f.method = 'POST'; f.action = '/register';
+  [['username', document.getElementById('username').value],
+   ['email',    document.getElementById('email').value],
+   ['password', document.getElementById('password').value]].forEach(([k, v]) => {
+    const i = document.createElement('input');
+    i.name = k; i.value = v; f.appendChild(i);
+  });
+  document.body.appendChild(f); f.submit();
+}
+document.addEventListener('keypress', e => { if (e.key === 'Enter') doRegister(); });
+
+let slides = []; let currentSlide = 0; let slideTimer;
+
+async function loadSlides() {
+  try {
+    const res  = await fetch('/api/auth-backdrops');
+    const data = await res.json();
+    slides = data.backdrops || [];
+    const loader = document.getElementById('auth-loader');
+    if (!slides.length) { if (loader) loader.style.display = 'none'; return; }
+    const firstImg = new Image();
+    firstImg.onload = () => { if (loader) loader.style.display = 'none'; buildSlides(); };
+    firstImg.onerror = () => { if (loader) loader.style.display = 'none'; buildSlides(); };
+    firstImg.src = slides[0].url;
+  } catch(e) {
+    const loader = document.getElementById('auth-loader');
+    if (loader) loader.style.display = 'none';
+  }
+}
+
+function buildSlides() {
+  const container = document.getElementById('auth-slides');
+  const dotsEl    = document.getElementById('slide-dots');
+  slides.forEach((s, i) => {
+    const el = document.createElement('div');
+    el.className = 'auth-slide' + (i === 0 ? ' active' : '');
+    el.style.backgroundImage = `url('${s.url}')`;
+    container.appendChild(el);
+    const d = document.createElement('button');
+    d.className = 'slide-dot' + (i === 0 ? ' active' : '');
+    d.onclick = () => goToSlide(i);
+    dotsEl.appendChild(d);
+  });
+  updateInfo(0);
+  slideTimer = setInterval(() => goToSlide((currentSlide + 1) % slides.length), 5000);
+}
+
+function goToSlide(n) {
+  const allSlides = document.querySelectorAll('.auth-slide');
+  const allDots   = document.querySelectorAll('.slide-dot');
+  if (!allSlides.length) return;
+  allSlides[currentSlide]?.classList.remove('active');
+  allDots[currentSlide]?.classList.remove('active');
+  currentSlide = n;
+  allSlides[currentSlide]?.classList.add('active');
+  allDots[currentSlide]?.classList.add('active');
+  updateInfo(currentSlide);
+  clearInterval(slideTimer);
+  slideTimer = setInterval(() => goToSlide((currentSlide + 1) % slides.length), 5000);
+}
+
+function updateInfo(n) {
+  const t = document.getElementById('slide-title');
+  const y = document.getElementById('slide-year');
+  if (t) t.textContent = slides[n]?.title || '';
+  if (y) y.textContent = slides[n]?.year  || '';
+}
+
+loadSlides();
+</script>
+{% endblock %}

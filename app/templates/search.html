@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="discover-wrap">
+
+  <div class="discover-header">
+    <h1 class="discover-title">
+      {% if query %}Results for "{{ query }}"{% else %}Search{% endif %}
+    </h1>
+    <p class="discover-sub">
+      {% if results %}{{ results | length }} result{% if results | length != 1 %}s{% endif %} found
+      {% elif query %}No results found for "{{ query }}"
+      {% else %}Enter a search term above{% endif %}
+    </p>
+  </div>
+
+  <!-- Search box on page too -->
+  <div class="page-search-wrap">
+    <div class="page-search-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:16px;height:16px;color:var(--text3);flex-shrink:0">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+      <input id="page-search-input" type="text" value="{{ query }}"
+        placeholder="Search movies, shows..."
+        onkeydown="if(event.key==='Enter') window.location.href='/search?q='+encodeURIComponent(this.value)">
+      <button onclick="window.location.href='/search?q='+encodeURIComponent(document.getElementById('page-search-input').value)">
+        Search
+      </button>
+    </div>
+  </div>
+
+  {% if results %}
+  <div class="discover-grid">
+    {% for m in results %}
+    <a href="/movie/{{ m.id }}" class="disc-card card-enter"
+       style="animation-delay:{{ loop.index0 * 40 }}ms; text-decoration:none; display:block;">
+      {% if m.poster %}
+      <img src="{{ m.poster }}" alt="{{ m.title }}" loading="lazy"
+           onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      {% endif %}
+      <div class="disc-card-fallback" style="display:{% if m.poster %}none{% else %}flex{% endif %}">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/>
+        </svg>
+      </div>
+      <div class="disc-card-overlay" style="opacity:1;background:linear-gradient(to top,rgba(7,8,15,0.97) 0%,transparent 60%)">
+        <p class="disc-card-title">{{ m.title }}</p>
+        <p class="disc-card-meta">{{ m.year or '—' }} &middot; ★ {{ m.rating }}/10</p>
+        <div class="disc-card-actions">
+          <button onclick="event.preventDefault();event.stopPropagation();window.location.href='/movie/{{ m.id }}'">
+            View Details
+          </button>
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  <div style="text-align:center;padding:80px 0;">
+    <div style="font-size:48px;margin-bottom:16px;">🎬</div>
+    <p style="font-size:15px;color:var(--text2);margin-bottom:8px;">
+      {% if query %}No movies found for "{{ query }}"{% else %}Search for any movie or show{% endif %}
+    </p>
+    <p style="font-size:13px;color:var(--text3);margin-bottom:24px;">Try a different title or browse by genre</p>
+    <a href="/discover" style="color:var(--accent2);font-size:13px;font-weight:600;text-decoration:none;
+       background:var(--surface);border:1px solid var(--border2);padding:10px 24px;border-radius:100px;">
+      Browse Discover →
+    </a>
+  </div>
+  {% endif %}
+
+</div>
+
+<style>
+.page-search-wrap { margin-bottom: 32px; }
+.page-search-row {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--surface); border: 1px solid var(--border2);
+  border-radius: 12px; padding: 10px 16px;
+  max-width: 480px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.page-search-row:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(108,99,255,0.1);
+}
+.page-search-row input {
+  flex: 1; background: none; border: none; outline: none;
+  font-family: 'Cabinet Grotesk', sans-serif;
+  font-size: 14px; color: var(--white);
+}
+.page-search-row input::placeholder { color: var(--text3); }
+.page-search-row button {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #fff; border: none; border-radius: 8px;
+  padding: 8px 20px;
+  font-family: 'Clash Display', sans-serif;
+  font-size: 13px; font-weight: 600;
+  cursor: pointer; white-space: nowrap;
+  transition: all 0.18s;
+}
+.page-search-row button:hover { box-shadow: 0 4px 16px rgba(108,99,255,0.4); }
+</style>
+{% endblock %}

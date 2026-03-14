@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+{% block content %}
+<div style="max-width:1100px;margin:0 auto;padding:48px 32px;position:relative;z-index:1;">
+
+  <!-- Header -->
+  <div style="margin-bottom:32px;">
+    <h1 style="font-family:'Clash Display',sans-serif;font-size:42px;font-weight:700;color:var(--white);letter-spacing:-1px;line-height:1;">Activity</h1>
+    <p style="font-size:14px;color:var(--text2);margin-top:6px;">See what your friends are watching and rating</p>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 300px;gap:24px;align-items:start;">
+
+    <!-- Left: Feed -->
+    <div>
+
+      <!-- Pending requests banner -->
+      {% if pending %}
+      <div style="background:rgba(108,99,255,0.1);border:1px solid rgba(108,99,255,0.25);border-radius:14px;padding:16px 20px;margin-bottom:20px;">
+        <p style="font-family:'Clash Display',sans-serif;font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--accent2);margin-bottom:12px;">
+          Friend Requests ({{ pending|length }})
+        </p>
+        {% for f in pending %}
+        <div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);">
+          <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-family:'Clash Display',sans-serif;font-size:16px;font-weight:700;color:#fff;flex-shrink:0;">
+            {{ f.requester.username[0].upper() }}
+          </div>
+          <p style="flex:1;font-size:13px;font-weight:600;color:var(--white);">{{ f.requester.username }}</p>
+          <button onclick="respondRequest({{ f.requester_id }}, 'accept')"
+            style="background:rgba(108,99,255,0.15);border:1px solid rgba(108,99,255,0.3);color:var(--accent2);font-size:11px;font-weight:600;padding:5px 14px;border-radius:7px;cursor:pointer;margin-right:6px;">
+            Accept
+          </button>
+          <button onclick="respondRequest({{ f.requester_id }}, 'decline')"
+            style="background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.2);color:#f87171;font-size:11px;font-weight:600;padding:5px 14px;border-radius:7px;cursor:pointer;">
+            Decline
+          </button>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- Feed -->
+      {% if feed %}
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        {% for item in feed %}
+        <div class="msg-enter" style="animation-delay:{{ loop.index0 * 40 }}ms;display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;">
+          <!-- Avatar -->
+          <div style="width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-family:'Clash Display',sans-serif;font-size:18px;font-weight:700;color:#fff;flex-shrink:0;">
+            {{ item.user.username[0].upper() }}
+          </div>
+          <!-- Content -->
+          <div style="flex:1;min-width:0;">
+            <p style="font-size:13px;color:var(--text);line-height:1.5;">
+              <span style="font-weight:700;color:var(--white);">{{ item.user.username }}</span>
+              <span style="color:var(--text2);margin:0 5px;">
+                {% if item.action == 'rated' %}rated
+                {% elif item.action == 'watchlisted' %}added to watchlist
+                {% elif item.action == 'reviewed' %}reviewed
+                {% else %}{{ item.action }}{% endif %}
+              </span>
+              {% if item.movie_id %}
+              <a href="/movie/{{ item.movie_id }}" style="color:var(--accent2);text-decoration:none;font-weight:600;">{{ item.movie_title }}</a>
+              {% else %}
+              <span style="color:var(--accent2);font-weight:600;">{{ item.movie_title }}</span>
+              {% endif %}
+              {% if item.details %}
+              <span style="color:var(--text3);font-size:12px;"> — {{ item.details }}</span>
+              {% endif %}
+            </p>
+            <p style="font-size:11px;color:var(--text3);margin-top:3px;">{{ item.created_at.strftime('%d %b %Y at %H:%M') }}</p>
+          </div>
+          <!-- Poster -->
+          {% if item.poster %}
+          <img src="{{ item.poster }}" style="width:36px;height:50px;object-fit:cover;border-radius:6px;flex-shrink:0;" alt="">
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:60px 40px;text-align:center;">
+        <div style="font-size:48px;margin-bottom:16px;">🎬</div>
+        <p style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:8px;">No activity yet</p>
+        <p style="font-size:13px;color:var(--text3);margin-bottom:20px;">Add friends and start rating movies to see activity here!</p>
+        <a href="/discover" style="background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;text-decoration:none;padding:10px 24px;border-radius:10px;font-family:'Clash Display',sans-serif;font-size:13px;font-weight:600;">
+          Browse Movies
+        </a>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Right: Friends sidebar -->
+    <div style="position:sticky;top:80px;">
+
+      <!-- Find People -->
+      <div style="background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:20px;margin-bottom:16px;">
+        <p style="font-family:'Clash Display',sans-serif;font-size:13px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text2);margin-bottom:14px;">
+          Find People
+        </p>
+        <input id="people-search" type="text" placeholder="Search by username..."
+          oninput="filterUsers(this.value)"
+          style="width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:9px 12px;font-size:13px;color:var(--white);outline:none;margin-bottom:14px;font-family:'Cabinet Grotesk',sans-serif;transition:border-color 0.2s;">
+
+        <div id="people-list" style="display:flex;flex-direction:column;gap:2px;max-height:380px;overflow-y:auto;">
+          {% if users %}
+            {% for u in users %}
+            <div class="people-item" data-name="{{ u.username.lower() }}"
+              style="display:flex;align-items:center;gap:10px;padding:9px 6px;border-bottom:1px solid var(--border);border-radius:8px;">
+              <div style="width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-family:'Clash Display',sans-serif;font-size:15px;font-weight:700;color:#fff;flex-shrink:0;">
+                {{ u.username[0].upper() }}
+              </div>
+              <div style="flex:1;min-width:0;">
+                <p style="font-size:13px;font-weight:600;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ u.username }}</p>
+                <p style="font-size:10px;color:var(--text3);">Since {{ u.created_at.strftime('%b %Y') }}</p>
+              </div>
+              {% if u.id in friend_ids %}
+              <span style="font-size:11px;color:var(--accent2);font-weight:600;background:rgba(108,99,255,0.1);padding:3px 10px;border-radius:100px;">Friends</span>
+              {% else %}
+              <button onclick="sendRequest({{ u.id }}, this)"
+                style="background:var(--surface2);border:1px solid var(--border2);color:var(--accent2);font-size:11px;font-weight:600;padding:5px 12px;border-radius:7px;cursor:pointer;white-space:nowrap;transition:all 0.15s;">
+                + Add
+              </button>
+              {% endif %}
+            </div>
+            {% endfor %}
+          {% else %}
+          <p style="font-size:13px;color:var(--text3);text-align:center;padding:20px 0;">No other users yet.</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Your stats -->
+      <div style="background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:20px;">
+        <p style="font-family:'Clash Display',sans-serif;font-size:13px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text2);margin-bottom:14px;">
+          Your Stats
+        </p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div style="background:var(--bg2);border-radius:10px;padding:14px;text-align:center;">
+            <p style="font-family:'Clash Display',sans-serif;font-size:22px;font-weight:700;color:var(--white);">{{ friend_ids|length }}</p>
+            <p style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-top:2px;">Friends</p>
+          </div>
+          <div style="background:var(--bg2);border-radius:10px;padding:14px;text-align:center;">
+            <p style="font-family:'Clash Display',sans-serif;font-size:22px;font-weight:700;color:var(--white);">{{ feed|length }}</p>
+            <p style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-top:2px;">Activities</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+async function sendRequest(userId, btn) {
+  btn.textContent = '...';
+  btn.disabled = true;
+  const res  = await fetch('/api/friends/request', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({user_id: userId})
+  });
+  const data = await res.json();
+  btn.textContent = data.status === 'sent' ? 'Sent!' : 'Pending';
+  btn.style.opacity = '0.5';
+}
+
+async function respondRequest(userId, action) {
+  await fetch(`/api/friends/${action}`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({user_id: userId})
+  });
+  window.location.reload();
+}
+
+function filterUsers(val) {
+  document.querySelectorAll('.people-item').forEach(el => {
+    el.style.display = el.dataset.name.includes(val.toLowerCase()) ? 'flex' : 'none';
+  });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,344 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<!-- ── Hero ──────────────────────────────────── -->
+<div class="hero-section">
+  <p class="hero-eyebrow">AI-Powered Movie Companion</p>
+  <h1 class="hero-heading">Find Your Next<br><span class="hero-accent">Favourite Film</span></h1>
+  <p class="hero-sub">Tell CineBot your mood, genre, or vibe — get instant personalised recommendations powered by AI.</p>
+  <div class="hero-actions">
+    <button class="hero-btn-primary" onclick="openChat()">Start Chatting</button>
+    <a href="/discover" class="hero-btn-secondary">Browse Movies</a>
+  </div>
+  <div class="hero-stats">
+    <div class="hero-stat"><span class="hero-stat-num">10K+</span><span class="hero-stat-lbl">Movies</span></div>
+    <div class="hero-stat"><span class="hero-stat-num">AI</span><span class="hero-stat-lbl">Powered</span></div>
+    <div class="hero-stat"><span class="hero-stat-num">Free</span><span class="hero-stat-lbl">Forever</span></div>
+  </div>
+</div>
+
+<!-- ── Genre Showcase ─────────────────────────── -->
+<div class="genre-showcase">
+  {% for g, icon in [('Thriller','🔪'),('Sci-Fi','🚀'),('Romance','❤'),('Horror','💀'),('Comedy','😂'),('Action','💥')] %}
+  <a href="/discover" class="genre-showcase-card">
+    <span class="genre-showcase-icon">{{ icon }}</span>
+    <span class="genre-showcase-name">{{ g }}</span>
+  </a>
+  {% endfor %}
+</div>
+
+<!-- ── Featured Movie Spotlight ───────────────── -->
+<div class="spotlight-section" id="spotlight-section">
+  <div class="spotlight-skeleton" id="spotlight-skeleton">
+    <div class="spotlight-skeleton-content">
+      <div class="skeleton-line" style="width:100px;height:10px;margin-bottom:14px;border-radius:4px;"></div>
+      <div class="skeleton-line" style="width:300px;height:44px;margin-bottom:10px;border-radius:6px;"></div>
+      <div class="skeleton-line" style="width:220px;height:14px;margin-bottom:6px;border-radius:4px;"></div>
+      <div class="skeleton-line" style="width:260px;height:14px;margin-bottom:22px;border-radius:4px;"></div>
+      <div class="skeleton-line" style="width:130px;height:42px;border-radius:10px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Trending Row ───────────────────────────── -->
+<div class="trending-section">
+  <div class="trending-header">
+    <h2 class="trending-title">Trending This Week</h2>
+    <a href="/discover" class="trending-see-all">See all →</a>
+  </div>
+  <div class="trending-row" id="trending-row">
+    {% for i in range(8) %}<div class="trending-skeleton"></div>{% endfor %}
+  </div>
+</div>
+
+<!-- ── Director Spotlight ─────────────────────── -->
+<div class="director-section" id="director-section" style="opacity:0;transition:opacity 0.5s ease;">
+  <div class="director-inner">
+    <div class="director-label">Director Spotlight</div>
+    <div class="director-content" id="director-content">
+      <div class="director-loading">
+        <div style="display:flex;gap:16px;align-items:center;">
+          <div class="skeleton-line" style="width:90px;height:110px;border-radius:12px;flex-shrink:0;"></div>
+          <div style="flex:1">
+            <div class="skeleton-line" style="width:180px;height:20px;margin-bottom:10px;border-radius:4px;"></div>
+            <div class="skeleton-line" style="width:260px;height:13px;margin-bottom:6px;border-radius:4px;"></div>
+            <div class="skeleton-line" style="width:200px;height:13px;border-radius:4px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Features Section ───────────────────────── -->
+<div class="features-section">
+  <p class="features-eyebrow">Why CineBot</p>
+  <h2 class="features-heading">Everything You Need to Find Great Films</h2>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">🤖</div>
+      <h3 class="feature-title">AI Recommendations</h3>
+      <p class="feature-desc">Tell CineBot your mood or genre and get instant personalised picks powered by Gemini AI.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🎬</div>
+      <h3 class="feature-title">10,000+ Movies</h3>
+      <p class="feature-desc">Powered by TMDB — browse posters, ratings, cast, trailers and full movie details.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📋</div>
+      <h3 class="feature-title">Personal Watchlist</h3>
+      <p class="feature-desc">Save movies you want to watch and rate ones you've seen. Build your personal film library.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔥</div>
+      <h3 class="feature-title">Trending & Upcoming</h3>
+      <p class="feature-desc">See what's popular this week, what's showing in theatres and what's coming soon.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ── CTA Banner ─────────────────────────────── -->
+<div class="cta-banner">
+  <div class="cta-banner-inner">
+    <div class="cta-banner-glow"></div>
+    <h2 class="cta-title">Ready to find your next favourite film?</h2>
+    <p class="cta-sub">Chat with CineBot and get AI-powered recommendations in seconds.</p>
+    <button class="cta-btn" onclick="openChat()">
+      <svg viewBox="0 0 24 24" fill="currentColor" style="width:18px;height:18px">
+        <path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/>
+      </svg>
+      Ask CineBot Now
+    </button>
+  </div>
+</div>
+
+<!-- ── Chat Modal ─────────────────────────────── -->
+<div class="chat-modal-overlay hidden" id="chat-overlay" onclick="handleOverlayClick(event)">
+  <div class="chat-modal">
+    <div class="chat-modal-header">
+      <div class="chat-modal-title">
+        <div class="msg-avatar" style="width:28px;height:28px;">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>
+        </div>
+        <div>
+          <p class="chat-modal-name">CineBot</p>
+          <p class="chat-modal-status">AI Movie Companion — online</p>
+        </div>
+      </div>
+      <button class="chat-modal-close" onclick="closeChat()">&#x2715;</button>
+    </div>
+    <div class="chat-modal-body">
+      <div class="chat-modal-sidebar">
+        <p class="sidebar-section-label">Quick Ask</p>
+        {% for s in ["Recommend something","What's trending","Suggest a thriller","Best sci-fi films","Something romantic","Surprise me"] %}
+        <button class="sidebar-btn" onclick="sendSuggestion('{{ s }}')">{{ s }}</button>
+        {% endfor %}
+        {% if sessions %}
+        <div class="sidebar-divider"></div>
+        <p class="sidebar-section-label">Recent</p>
+        {% for sess in sessions %}
+        <button class="sidebar-btn" onclick="loadSession('{{ sess.session_id }}')">
+          {{ sess.title[:24] }}{% if sess.title|length > 24 %}...{% endif %}
+        </button>
+        {% endfor %}
+        {% endif %}
+        <div class="sidebar-divider"></div>
+        <div class="sidebar-user">
+          <p class="sidebar-user-label">Signed in as</p>
+          <p class="sidebar-user-name">{{ current_user.username }}</p>
+        </div>
+      </div>
+      <div class="chat-modal-main">
+        <div class="messages" id="messages">
+          <div class="msg-bot msg-enter">
+            <div class="msg-meta">
+              <div class="msg-avatar"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg></div>
+              <span class="msg-name">CINEBOT</span>
+            </div>
+            <div class="bubble-bot">Tell me your mood, a genre you love, or what kind of film you are in the mood for — I will find something perfect.</div>
+          </div>
+          {% for msg in history %}
+          {% if msg.role == 'user' %}
+          <div class="msg-user"><div class="bubble-user">{{ msg.message }}</div></div>
+          {% else %}
+          <div class="msg-bot">
+            <div class="msg-meta">
+              <div class="msg-avatar"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg></div>
+              <span class="msg-name">CINEBOT</span>
+            </div>
+            <div class="bubble-bot">{{ msg.message }}</div>
+          </div>
+          {% endif %}
+          {% endfor %}
+        </div>
+        <div class="cards-row hidden" id="movie-cards"></div>
+        <div class="chat-modal-input">
+          <div class="input-row">
+            <input class="chat-input" id="user-input" type="text"
+              placeholder="Ask about movies, moods, genres..." autocomplete="off">
+            <button class="send-btn" id="send-btn">Send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<button class="chat-fab" id="chat-fab" onclick="openChat()">
+  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>
+  <span>Ask CineBot</span>
+</button>
+
+<script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+<script>
+const ICON_SVG = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>`;
+
+// ── Chat modal ──────────────────────────────────
+function openChat() {
+  document.getElementById('chat-overlay').classList.remove('hidden');
+  document.getElementById('chat-fab').classList.add('hidden');
+  setTimeout(() => document.getElementById('user-input').focus(), 300);
+}
+function closeChat() {
+  document.getElementById('chat-overlay').classList.add('hidden');
+  document.getElementById('chat-fab').classList.remove('hidden');
+}
+function handleOverlayClick(e) {
+  if (e.target === document.getElementById('chat-overlay')) closeChat();
+}
+async function loadSession(sid) {
+  const res  = await fetch(`/api/session/${sid}`);
+  const msgs = await res.json();
+  const div  = document.getElementById('messages');
+  div.innerHTML = '';
+  msgs.forEach(m => addMessage(m.message, m.role === 'user' ? 'user' : 'assistant'));
+}
+
+// ── Trending row ────────────────────────────────
+async function loadTrending() {
+  try {
+    const res    = await fetch('/api/discover?tab=trending&limit=12');
+    const data   = await res.json();
+    const movies = (data.movies || []).slice(0, 12);
+    const row    = document.getElementById('trending-row');
+    row.innerHTML = '';
+    movies.forEach(m => {
+      const card      = document.createElement('a');
+      card.href       = `/movie/${m.id}`;
+      card.className  = 'trending-card card-enter';
+      card.innerHTML  = `
+        ${m.poster ? `<img src="${m.poster}" loading="lazy" alt="${m.title}">` : '<div class="trending-fallback"></div>'}
+        <div class="trending-card-info">
+          <p class="trending-card-title">${m.title}</p>
+          <p class="trending-card-meta">★ ${m.rating}</p>
+        </div>`;
+      row.appendChild(card);
+    });
+  } catch(e) {}
+}
+
+// ── Featured spotlight ──────────────────────────
+async function loadSpotlight() {
+  try {
+    const res    = await fetch('/api/discover?tab=trending&limit=5');
+    const data   = await res.json();
+    const movies = data.movies || [];
+    if (!movies.length) {
+      document.getElementById('spotlight-section').style.display = 'none';
+      return;
+    }
+    const m       = movies[Math.floor(Math.random() * Math.min(5, movies.length))];
+    const section = document.getElementById('spotlight-section');
+    section.style.backgroundImage = m.backdrop ? `url('${m.backdrop}')` : '';
+    section.innerHTML = `
+      <div class="spotlight-overlay"></div>
+      <div class="spotlight-content">
+        <p class="spotlight-label">Featured Film</p>
+        <h2 class="spotlight-title">${m.title}</h2>
+        <div class="spotlight-meta">
+          <span>${m.year || '—'}</span>
+          <span>★ ${m.rating}/10</span>
+          <span>${m.votes ? m.votes.toLocaleString() + ' votes' : ''}</span>
+        </div>
+        <p class="spotlight-overview">${(m.overview || '').slice(0, 180)}${m.overview && m.overview.length > 180 ? '...' : ''}</p>
+        <div class="spotlight-actions">
+          <a href="/movie/${m.id}" class="spotlight-btn-primary">View Details</a>
+          <button class="spotlight-btn-secondary"
+            onclick="addSpotlightWatchlist(${m.id},'${m.title.replace(/'/g,"\\'")}','${m.poster||''}','${m.year||''}',${m.rating})">
+            + Watchlist
+          </button>
+        </div>
+      </div>`;
+  } catch(e) {}
+}
+
+async function addSpotlightWatchlist(id, title, poster, year, rating) {
+  const res  = await fetch('/api/watchlist/add', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({tmdb_id: id, title, poster, year, rating})
+  });
+  const data = await res.json();
+  showHomeToast(data.status === 'added' ? `"${title}" added to watchlist!` : 'Already in watchlist.');
+}
+
+// ── Director spotlight — uses new fast API ──────
+async function loadDirectorSpotlight() {
+  const section   = document.getElementById('director-section');
+  const container = document.getElementById('director-content');
+  try {
+    const res = await fetch('/api/director-spotlight');
+    const d   = await res.json();
+
+    if (!d || !d.name) {
+      section.style.display = 'none';
+      return;
+    }
+
+    container.innerHTML = `
+      <div class="director-left">
+        ${d.photo
+          ? `<img src="${d.photo}" alt="${d.name}" class="director-photo">`
+          : `<div class="director-photo-fallback">${d.name[0]}</div>`}
+        <div class="director-info">
+          <p class="director-name">${d.name}</p>
+          <p class="director-bio">${d.bio}</p>
+          <a href="/search?q=${encodeURIComponent(d.name)}" class="director-link">View all films →</a>
+        </div>
+      </div>
+      <div class="director-films">
+        ${(d.movies || []).map(m => `
+          <a href="/movie/${m.id}" class="director-film-card">
+            ${m.poster
+              ? `<img src="${m.poster}" alt="${m.title}" loading="lazy">`
+              : `<div class="director-film-fallback">${ICON_SVG}</div>`}
+            <p class="director-film-title">${m.title}</p>
+            <p class="director-film-year">${m.year}</p>
+          </a>`).join('')}
+      </div>`;
+
+    // Fade in
+    section.style.opacity = '1';
+
+  } catch(e) {
+    section.style.display = 'none';
+  }
+}
+
+function showHomeToast(msg) {
+  const t = document.createElement('div');
+  t.className   = 'toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.classList.add('toast-show'), 10);
+  setTimeout(() => { t.classList.remove('toast-show'); setTimeout(() => t.remove(), 300); }, 3000);
+}
+
+// Load all sections in parallel
+Promise.all([
+  loadTrending(),
+  loadSpotlight(),
+  loadDirectorSpotlight(),
+]);
+</script>
+{% endblock %}

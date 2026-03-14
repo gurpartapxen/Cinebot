@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="profile-wrap">
+
+  <div class="profile-hero">
+    <div class="profile-avatar">{{ current_user.username[0].upper() }}</div>
+    <div class="profile-info">
+      <p class="profile-name">{{ current_user.username }}</p>
+      <p class="profile-email">{{ current_user.email }}</p>
+      <p class="profile-since">Member since {{ current_user.created_at.strftime('%B %Y') }}</p>
+    </div>
+    <div class="profile-count">
+      <p class="profile-count-num">{{ ratings | length }}</p>
+      <p class="profile-count-lbl">Rated</p>
+    </div>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-tile">
+      <p class="stat-val">{{ watchlist | length }}</p>
+      <p class="stat-lbl">Watchlist</p>
+    </div>
+    <div class="stat-tile">
+      <p class="stat-val">{{ avg_rating or '--' }}</p>
+      <p class="stat-lbl">Avg Rating</p>
+    </div>
+    <div class="stat-tile">
+      <p class="stat-val">{{ total_chats }}</p>
+      <p class="stat-lbl">Chats</p>
+    </div>
+  </div>
+
+  <!-- Watchlist -->
+  <div class="history-panel" style="margin-bottom:16px">
+    <p class="history-panel-title">Watchlist</p>
+    {% if watchlist %}
+    <div class="watchlist-grid">
+      {% for item in watchlist %}
+      <div class="wl-card">
+        {% if item.poster %}
+        <img src="{{ item.poster }}" alt="{{ item.title }}">
+        {% else %}
+        <div class="wl-card-fallback">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>
+        </div>
+        {% endif %}
+        <div class="wl-card-info">
+          <p class="wl-title">{{ item.title }}</p>
+          <p class="wl-meta">{{ item.year }} &middot; {{ item.rating }}/10</p>
+        </div>
+        <form method="POST" action="/watchlist/remove/{{ item.id }}">
+          <button type="submit" class="wl-remove">Remove</button>
+        </form>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="history-empty">
+      <p>Your watchlist is empty.</p>
+      <a href="/discover">Browse movies</a>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Ratings -->
+  <div class="history-panel">
+    <p class="history-panel-title">Your Ratings</p>
+    {% if ratings %}
+      {% for r in ratings %}
+      <div class="history-item">
+        <div class="history-icon">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>
+        </div>
+        <div class="history-info">
+          <p class="history-title-text">{{ r.title }}</p>
+          {% if r.review %}<p class="history-type">"{{ r.review }}"</p>{% endif %}
+        </div>
+        <div class="history-meta">
+          <p class="history-rating">{{ r.rating }}/10</p>
+          <p class="history-date">{{ r.rated_at.strftime('%d %b %Y') }}</p>
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="history-empty">
+        <p>No ratings yet.</p>
+        <a href="/discover">Rate some movies</a>
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
