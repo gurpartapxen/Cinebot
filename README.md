@@ -7,7 +7,7 @@ Live Demo: [cinebot-hype.up.railway.app](https://cinebot-hype.up.railway.app)
 # Features
 
  AI Chat — Conversational movie recommendations powered by Google Gemini 2.5 Flash with memory
- Discover — Browse 60+ movies across 5 tabs (Popular, Top Rated, Trending, Upcoming, Now Playing) with genre filters
+ Discover — Browse 10K+ movies across 5 tabs (Popular, Top Rated, Trending, Upcoming, Now Playing) with genre filters
  Search — Real-time movie search with instant results
  Streaming — Browse 10 platforms (Netflix, Prime, Disney+, Hotstar, JioCinema etc.) and see where any movie is streaming
  Watchlist & Ratings— Save movies and rate them out of 10
@@ -34,7 +34,7 @@ Live Demo: [cinebot-hype.up.railway.app](https://cinebot-hype.up.railway.app)
 #Prerequisites
 - Python 3.11+
 - MySQL
-- TMDB API Key — [Get one free](https://www.themoviedb.org/settings/api)
+- TMDB API Key or bearer token— [Get one free](https://www.themoviedb.org/settings/api)
 - Google Gemini API Key — [Get one free](https://aistudio.google.com)
 
 #Local Setup
@@ -105,7 +105,6 @@ CineBot/
 └── runtime.txt
 ```
 
----
 
 ## 🗄 Database Schema
 
@@ -120,19 +119,18 @@ CineBot/
 | `friendships` | Friend connections |
 | `activity_feed` | Social activity log |
 
----
-
 #Deployment
 
 Deployed on Railway with a managed MySQL database.
 
-**Environment Variables Required:**
+Environment Variables Required:
 ```
 DATABASE_URL    = mysql+pymysql://...   (Railway MySQL internal URL)
 GEMINI_API_KEY  = AIza...
 TMDB_API_KEY    = ...
 SECRET_KEY      = ...
 FLASK_ENV       = production
+TMDB_READ_TOKEN = ....
 ```
 
 #Key Features Deep Dive
@@ -152,4 +150,4 @@ MIT License — feel free to use this project for learning and portfolio purpose
 
 👨‍💻 Author
 
-Gurpartap — Final Year Computer Science Project
+Gurpartap's Full stack + Ai powered Project
