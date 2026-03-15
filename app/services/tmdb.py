@@ -1,3 +1,5 @@
+import os
+import time
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
@@ -33,34 +35,54 @@ MOOD_TO_GENRE = {
     'bored':       ['action', 'sci-fi'],
 }
 
-HEADERS = {
-    'User-Agent':      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122.0.0.0 Safari/537.36',
-    'Accept':          'application/json, text/plain, */*',
-    'Accept-Language': 'en-US,en;q=0.9',
-    'Accept-Encoding': 'gzip, deflate, br',
-    'Connection':      'keep-alive',
-    'Referer':         'https://www.themoviedb.org/',
-}
+USER_AGENTS = [
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:123.0) Gecko/20100101 Firefox/123.0',
+]
 
+_ua_index = 0
+
+def _next_user_agent():
+    global _ua_index
+    ua = USER_AGENTS[_ua_index % len(USER_AGENTS)]
+    _ua_index += 1
+    return ua
 
 def _make_session():
     session = requests.Session()
-    session.headers.update(HEADERS)
-    retry = Retry(total=3, backoff_factor=1,
-                  status_forcelist=[429, 500, 502, 503, 504],
-                  allowed_methods=["GET"])
+    session.headers.update({
+        'User-Agent':      _next_user_agent(),
+        'Accept':          'application/json, text/plain, */*',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection':      'keep-alive',
+        'Referer':         'https://www.themoviedb.org/',
+        'Origin':          'https://www.themoviedb.org',
+    })
+    retry = Retry(
+        total=3,
+        backoff_factor=0.5,
+        status_forcelist=[429, 500, 502, 503, 504],
+        allowed_methods=["GET"]
+    )
     adapter = HTTPAdapter(max_retries=retry)
     session.mount('https://', adapter)
     session.mount('http://',  adapter)
     return session
 
 
+IS_PRODUCTION = os.environ.get('FLASK_ENV') == 'production' or os.environ.get('RAILWAY_ENVIRONMENT') is not None
+
+
 class TMDBService:
     def __init__(self):
-        self.api_key  = current_app.config['TMDB_API_KEY']
-        self.base_url = current_app.config['TMDB_BASE_URL']
-        self.img_base = current_app.config['TMDB_IMAGE_BASE']
-        self.session  = _make_session()
+        self.api_key   = current_app.config['TMDB_API_KEY']
+        self.base_url  = current_app.config['TMDB_BASE_URL']
+        self.img_base  = current_app.config['TMDB_IMAGE_BASE']
+        self.session   = _make_session()
+        self.max_pages = 2 if IS_PRODUCTION else 4
 
     def _parse(self, results):
         movies = []
@@ -89,114 +111,110 @@ class TMDBService:
         if params is None:
             params = {}
         params['api_key'] = self.api_key
-        try:
-            res = self.session.get(
-                f"{self.base_url}{endpoint}",
-                params=params, timeout=15
-            )
-            if res.status_code == 200:
-                return res.json()
-            return {}
-        except Exception as e:
-            print(f"TMDB error {endpoint}: {e}")
+
+        for attempt in range(3):
             try:
-                self.session = _make_session()
+                if attempt > 0:
+                    self.session = _make_session()
+                    time.sleep(0.5 * attempt)
+
                 res = self.session.get(
                     f"{self.base_url}{endpoint}",
-                    params=params, timeout=15
+                    params=params,
+                    timeout=10
                 )
                 if res.status_code == 200:
                     return res.json()
-            except Exception:
-                pass
-            return {}
+                if res.status_code in (401, 404):
+                    return {}
+                print(f"TMDB {res.status_code} on {endpoint}")
 
-    def _get_multi_page(self, endpoint, params=None, target=60):
-        """Fetch multiple pages to get up to `target` results."""
+            except requests.exceptions.Timeout:
+                print(f"TMDB timeout on {endpoint} (attempt {attempt + 1})")
+            except requests.exceptions.ConnectionError:
+                print(f"TMDB connection error on {endpoint} (attempt {attempt + 1})")
+            except Exception as e:
+                print(f"TMDB error {endpoint}: {e}")
+
+        return {}
+
+    def _get_multi_page(self, endpoint, params=None, target=40):
         if params is None:
             params = {}
         all_results = []
-        page = 1
+        page  = 1
+        max_p = min(self.max_pages, 3)
+
         while len(all_results) < target:
-            p = {**params, 'page': page}
+            p    = {**params, 'page': page}
             data = self._get(endpoint, p)
             results = data.get('results', [])
             if not results:
                 break
             all_results.extend(results)
             total_pages = data.get('total_pages', 1)
-            if page >= total_pages or page >= 4:
+            if page >= total_pages or page >= max_p:
                 break
             page += 1
+
         return all_results[:target]
 
-    def get_watch_providers(self, movie_id):
-        data = self._get(f'/movie/{movie_id}/watch/providers')
-        results = data.get('results', {})
+    # ── Streaming ──────────────────────────────────────────────────────────
 
-        # Try IN → US → GB → any available
+    def get_watch_providers(self, movie_id):
+        data        = self._get(f'/movie/{movie_id}/watch/providers')
+        results     = data.get('results', {})
         region_data = (results.get('IN') or results.get('US') or
                        results.get('GB') or next(iter(results.values()), {}))
-
         platforms = []
         seen = set()
-
         for ptype in ['flatrate', 'rent', 'buy']:
             for p in region_data.get(ptype, []):
                 if p['provider_name'] not in seen:
                     seen.add(p['provider_name'])
                     platforms.append({
-                        'name': p['provider_name'],
-                        'logo': f"https://image.tmdb.org/t/p/original{p['logo_path']}" if p.get('logo_path') else None,
-                        'type': 'stream' if ptype == 'flatrate' else ptype,
+                        'name':     p['provider_name'],
+                        'logo':     f"https://image.tmdb.org/t/p/original{p['logo_path']}" if p.get('logo_path') else None,
+                        'type':     'stream' if ptype == 'flatrate' else ptype,
                         'priority': p.get('display_priority', 99),
                     })
-
         return {
             'platforms': sorted(platforms, key=lambda x: x['priority']),
             'tmdb_link': region_data.get('link', f'https://www.themoviedb.org/movie/{movie_id}/watch'),
         }
 
-    def get_movies_by_provider(self, provider_id, limit=40):
-        """Get movies available on a specific streaming platform."""
-        # Try IN region first, then US for broader results
+    def get_movies_by_provider(self, provider_id, limit=20):
         results = self._get_multi_page('/discover/movie', {
             'with_watch_providers': provider_id,
-            'watch_region': 'IN',
-            'sort_by': 'popularity.desc',
+            'watch_region':         'IN',
+            'sort_by':              'popularity.desc',
         }, target=limit)
-
-        # If India returns nothing, try US
         if not results:
             results = self._get_multi_page('/discover/movie', {
                 'with_watch_providers': provider_id,
-                'watch_region': 'US',
-                'sort_by': 'popularity.desc',
+                'watch_region':         'US',
+                'sort_by':              'popularity.desc',
             }, target=limit)
-
-        # Final fallback — no region filter
         if not results:
             results = self._get_multi_page('/discover/movie', {
                 'with_watch_providers': provider_id,
-                'sort_by': 'popularity.desc',
+                'sort_by':              'popularity.desc',
             }, target=limit)
-
         print(f"Provider {provider_id}: {len(results)} results")
         return self._parse(results)
 
-    def get_popular(self, limit=60):
-        results = self._get_multi_page('/movie/popular', target=limit)
-        return self._parse(results)
+    # ── Discovery ──────────────────────────────────────────────────────────
 
-    def get_top_rated(self, limit=60):
-        results = self._get_multi_page('/movie/top_rated', target=limit)
-        return self._parse(results)
+    def get_popular(self, limit=40):
+        return self._parse(self._get_multi_page('/movie/popular', target=limit))
 
-    def get_trending(self, limit=60):
-        results = self._get_multi_page('/trending/movie/week', target=limit)
-        return self._parse(results)
+    def get_top_rated(self, limit=40):
+        return self._parse(self._get_multi_page('/movie/top_rated', target=limit))
 
-    def get_now_playing(self, limit=40):
+    def get_trending(self, limit=40):
+        return self._parse(self._get_multi_page('/trending/movie/week', target=limit))
+
+    def get_now_playing(self, limit=20):
         today     = datetime.now().strftime('%Y-%m-%d')
         month_ago = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
         results   = self._get_multi_page('/discover/movie', {
@@ -209,7 +227,7 @@ class TMDBService:
             results = self._get_multi_page('/movie/now_playing', target=limit)
         return self._parse(results)
 
-    def get_upcoming(self, limit=40):
+    def get_upcoming(self, limit=20):
         today      = datetime.now().strftime('%Y-%m-%d')
         two_months = (datetime.now() + timedelta(days=60)).strftime('%Y-%m-%d')
         results    = self._get_multi_page('/discover/movie', {
@@ -222,20 +240,24 @@ class TMDBService:
             results = self._get_multi_page('/movie/upcoming', target=limit)
         return self._parse(results)
 
-    def get_by_genre(self, genre_id, limit=60):
-        results = self._get_multi_page('/discover/movie', {
+    def get_by_genre(self, genre_id, limit=40):
+        return self._parse(self._get_multi_page('/discover/movie', {
             'with_genres': genre_id,
             'sort_by':     'popularity.desc',
-        }, target=limit)
-        return self._parse(results)
+        }, target=limit))
+
+    # ── Search ─────────────────────────────────────────────────────────────
 
     def search_movies(self, query, limit=20):
-        results = self._get_multi_page('/search/multi', {'query': query}, target=limit)
+        data    = self._get('/search/multi', {'query': query, 'page': 1})
+        results = data.get('results', [])[:limit]
         return self._parse(results)
 
     def search_tv(self, query):
         data = self._get('/search/tv', {'query': query, 'page': 1})
         return self._parse(data.get('results', [])[:8])
+
+    # ── Movie Detail ───────────────────────────────────────────────────────
 
     def get_movie_detail(self, movie_id):
         data = self._get(f'/movie/{movie_id}',
@@ -257,7 +279,7 @@ class TMDBService:
         cast = []
         for c in data.get('credits', {}).get('cast', [])[:10]:
             photo = f"{self.img_base}{c['profile_path']}" if c.get('profile_path') else None
-            cast.append({'name': c.get('name',''), 'character': c.get('character',''), 'photo': photo})
+            cast.append({'name': c.get('name', ''), 'character': c.get('character', ''), 'photo': photo})
 
         director = next((c.get('name') for c in data.get('credits', {}).get('crew', [])
                          if c.get('job') == 'Director'), None)
