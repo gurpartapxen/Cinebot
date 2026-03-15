@@ -1,130 +1,321 @@
 {% extends 'base.html' %}
 {% block content %}
 
-<!-- ── Hero ──────────────────────────────────── -->
-<div class="hero-section">
-  <p class="hero-eyebrow">AI-Powered Movie Companion</p>
-  <h1 class="hero-heading">Find Your Next<br><span class="hero-accent">Favourite Film</span></h1>
-  <p class="hero-sub">Tell CineBot your mood, genre, or vibe — get instant personalised recommendations powered by AI.</p>
-  <div class="hero-actions">
-    <button class="hero-btn-primary" onclick="openChat()">Start Chatting</button>
-    <a href="/discover" class="hero-btn-secondary">Browse Movies</a>
-  </div>
-  <div class="hero-stats">
-    <div class="hero-stat"><span class="hero-stat-num">10K+</span><span class="hero-stat-lbl">Movies</span></div>
-    <div class="hero-stat"><span class="hero-stat-num">AI</span><span class="hero-stat-lbl">Powered</span></div>
-    <div class="hero-stat"><span class="hero-stat-num">Free</span><span class="hero-stat-lbl">Forever</span></div>
-  </div>
-</div>
+<style>
+/* ── New homepage sections — uses existing CSS vars from style.css ── */
 
-<!-- ── Genre Showcase ─────────────────────────── -->
-<div class="genre-showcase">
-  {% for g, icon in [('Thriller','🔪'),('Sci-Fi','🚀'),('Romance','❤'),('Horror','💀'),('Comedy','😂'),('Action','💥')] %}
-  <a href="/discover" class="genre-showcase-card">
-    <span class="genre-showcase-icon">{{ icon }}</span>
-    <span class="genre-showcase-name">{{ g }}</span>
-  </a>
-  {% endfor %}
-</div>
+/* Hero */
+.nf-hero {
+  position: relative;
+  min-height: 92vh;
+  display: flex;
+  align-items: flex-end;
+  padding: 0 60px 80px;
+  overflow: hidden;
+  z-index: 1;
+}
+.nf-hero-backdrop {
+  position: absolute; inset: 0;
+  background-size: cover; background-position: center 20%;
+  z-index: 0; transform: scale(1.05);
+  transition: transform 10s ease; filter: brightness(0.45);
+}
+.nf-hero-backdrop.loaded { transform: scale(1); }
+.nf-hero-overlay {
+  position: absolute; inset: 0; z-index: 1;
+  background: linear-gradient(77deg, rgba(7,8,15,.92) 35%, transparent 70%),
+              linear-gradient(to top, rgba(7,8,15,.98) 0%, transparent 50%);
+}
+.nf-hero-content { position: relative; z-index: 2; max-width: 600px; }
 
-<!-- ── Featured Movie Spotlight ───────────────── -->
-<div class="spotlight-section" id="spotlight-section">
-  <div class="spotlight-skeleton" id="spotlight-skeleton">
-    <div class="spotlight-skeleton-content">
-      <div class="skeleton-line" style="width:100px;height:10px;margin-bottom:14px;border-radius:4px;"></div>
-      <div class="skeleton-line" style="width:300px;height:44px;margin-bottom:10px;border-radius:6px;"></div>
-      <div class="skeleton-line" style="width:220px;height:14px;margin-bottom:6px;border-radius:4px;"></div>
-      <div class="skeleton-line" style="width:260px;height:14px;margin-bottom:22px;border-radius:4px;"></div>
-      <div class="skeleton-line" style="width:130px;height:42px;border-radius:10px;"></div>
+.nf-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(108,99,255,0.12);
+  border: 1px solid rgba(108,99,255,0.3);
+  color: var(--accent2);
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 2.5px; text-transform: uppercase;
+  padding: 6px 16px; border-radius: 100px; margin-bottom: 24px;
+}
+.nf-badge-dot {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--accent);
+  animation: pdot 1.5s ease-in-out infinite;
+}
+@keyframes pdot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(1.5)} }
+
+.nf-hero-title {
+  font-family: 'Clash Display', sans-serif;
+  font-size: clamp(44px, 6.5vw, 82px);
+  font-weight: 800; color: var(--white);
+  line-height: 1.0; letter-spacing: -3px; margin-bottom: 22px;
+}
+.nf-hero-title .acc {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.nf-hero-sub {
+  font-size: 16px; color: var(--text2);
+  line-height: 1.7; margin-bottom: 40px; max-width: 480px;
+}
+.nf-hero-actions { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 56px; }
+
+.nf-btn-primary {
+  display: inline-flex; align-items: center; gap: 10px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #fff; font-family: 'Clash Display', sans-serif;
+  font-size: 15px; font-weight: 700;
+  padding: 14px 32px; border: none; border-radius: 10px;
+  cursor: pointer; transition: all 0.2s;
+  box-shadow: 0 4px 24px rgba(108,99,255,0.35);
+}
+.nf-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(108,99,255,0.55); }
+
+.nf-btn-ghost {
+  display: inline-flex; align-items: center; gap: 10px;
+  background: var(--surface); color: var(--text);
+  font-family: 'Clash Display', sans-serif;
+  font-size: 15px; font-weight: 600;
+  padding: 14px 32px; border: 1px solid var(--border2);
+  border-radius: 10px; cursor: pointer; text-decoration: none; transition: all 0.2s;
+}
+.nf-btn-ghost:hover { border-color: var(--accent); color: var(--white); }
+
+.nf-hero-stats { display: flex; align-items: center; gap: 28px; }
+.nf-stat-num {
+  font-family: 'Clash Display', sans-serif;
+  font-size: 28px; font-weight: 800; color: var(--white); line-height: 1;
+}
+.nf-stat-lbl {
+  font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--text3); margin-top: 4px;
+}
+.nf-stat-div { width: 1px; height: 40px; background: var(--border); }
+
+/* Row sections */
+.nf-row { padding: 36px 60px; position: relative; z-index: 1; }
+.nf-row-hd { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+.nf-row-name {
+  font-family: 'Clash Display', sans-serif;
+  font-size: 20px; font-weight: 700; color: var(--white); letter-spacing: -0.3px;
+}
+.nf-see-all { font-size: 12px; color: var(--accent2); text-decoration: none; font-weight: 600; }
+.nf-see-all:hover { color: var(--white); }
+.nf-scroll { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: none; }
+.nf-scroll::-webkit-scrollbar { display: none; }
+
+/* Cards */
+.nf-card {
+  flex-shrink: 0; width: 170px; border-radius: 10px;
+  overflow: hidden; cursor: pointer; position: relative;
+  transition: transform 0.3s cubic-bezier(0.25,0.46,0.45,0.94), z-index 0s 0.3s;
+  text-decoration: none; background: var(--surface);
+  border: 1px solid var(--border);
+}
+.nf-card:hover { transform: scale(1.15); z-index: 10; transition: transform 0.3s cubic-bezier(0.25,0.46,0.45,0.94); }
+.nf-card img { width: 100%; height: 255px; object-fit: cover; display: block; }
+.nf-card-fb { width: 100%; height: 255px; display: flex; align-items: center; justify-content: center; color: var(--text3); }
+.nf-card-ov {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: linear-gradient(to top, rgba(7,8,15,.97) 0%, transparent 100%);
+  padding: 28px 10px 10px; opacity: 0; transition: opacity 0.22s;
+}
+.nf-card:hover .nf-card-ov { opacity: 1; }
+.nf-card-name {
+  font-family: 'Clash Display', sans-serif; font-size: 12px; font-weight: 700;
+  color: var(--white); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px;
+}
+.nf-card-rt { font-size: 10px; color: var(--accent2); font-weight: 600; }
+.nf-skel {
+  flex-shrink: 0; width: 170px; height: 255px; border-radius: 10px;
+  background: var(--surface); border: 1px solid var(--border);
+  animation: shim 1.6s infinite;
+}
+@keyframes shim { 0%,100%{opacity:.5} 50%{opacity:1} }
+
+/* Genre grid */
+.nf-genre { padding: 10px 60px 50px; position: relative; z-index: 1; }
+.nf-genre-ttl {
+  font-family: 'Clash Display', sans-serif;
+  font-size: 20px; font-weight: 700; color: var(--white); margin-bottom: 18px;
+}
+.nf-genre-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); gap: 10px; }
+.nf-gtile {
+  height: 80px; border-radius: 12px; overflow: hidden; cursor: pointer;
+  text-decoration: none; display: flex; align-items: center;
+  justify-content: space-between; padding: 0 18px;
+  transition: transform 0.2s, box-shadow 0.2s;
+  border: 1px solid var(--border);
+}
+.nf-gtile:hover { transform: scale(1.04); box-shadow: 0 12px 28px rgba(0,0,0,0.5); }
+.nf-gtile-name { font-family: 'Clash Display', sans-serif; font-size: 15px; font-weight: 700; color: #fff; }
+.nf-gtile-icon { font-size: 36px; opacity: 0.85; transform: rotate(10deg) translateY(4px); }
+.t-action   { background: linear-gradient(135deg, rgba(108,99,255,.5), rgba(72,52,212,.7)),   var(--surface2); }
+.t-comedy   { background: linear-gradient(135deg, rgba(240,165,0,.5), rgba(180,83,0,.7)),     var(--surface2); }
+.t-drama    { background: linear-gradient(135deg, rgba(29,78,216,.5), rgba(30,58,138,.7)),    var(--surface2); }
+.t-horror   { background: linear-gradient(135deg, rgba(59,7,100,.7), rgba(15,3,32,.9)),       var(--surface2); }
+.t-thriller { background: linear-gradient(135deg, rgba(20,83,45,.7), rgba(5,46,22,.9)),       var(--surface2); }
+.t-romance  { background: linear-gradient(135deg, rgba(190,24,93,.5), rgba(80,7,36,.7)),      var(--surface2); }
+.t-scifi    { background: linear-gradient(135deg, rgba(3,105,161,.5), rgba(8,47,73,.7)),      var(--surface2); }
+.t-fantasy  { background: linear-gradient(135deg, rgba(109,40,217,.5), rgba(46,16,101,.7)),   var(--surface2); }
+
+/* Features */
+.nf-feats {
+  padding: 70px 60px;
+  border-top: 1px solid var(--border);
+  position: relative; z-index: 1;
+}
+.nf-feats-ey {
+  font-size: 10px; font-weight: 700; letter-spacing: 3px;
+  text-transform: uppercase; color: var(--accent2); margin-bottom: 14px;
+}
+.nf-feats-ttl {
+  font-family: 'Clash Display', sans-serif;
+  font-size: 36px; font-weight: 800; color: var(--white);
+  letter-spacing: -1.2px; margin-bottom: 48px; max-width: 520px;
+}
+.nf-feats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; }
+.nf-feat {
+  padding: 32px; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 16px;
+  transition: all 0.2s; position: relative; overflow: hidden;
+}
+.nf-feat::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--amber));
+  opacity: 0; transition: opacity 0.2s;
+}
+.nf-feat:hover::before { opacity: 1; }
+.nf-feat:hover { transform: translateY(-4px); box-shadow: 0 16px 36px rgba(0,0,0,0.3); border-color: var(--border2); }
+.nf-feat-ico { font-size: 28px; margin-bottom: 16px; }
+.nf-feat-ttl { font-family: 'Clash Display', sans-serif; font-size: 17px; font-weight: 700; color: var(--white); margin-bottom: 10px; }
+.nf-feat-dsc { font-size: 13px; color: var(--text2); line-height: 1.75; }
+
+/* CTA */
+.nf-cta {
+  padding: 80px 60px;
+  border-top: 1px solid var(--border);
+  position: relative; z-index: 1;
+}
+.nf-cta-inner {
+  background: linear-gradient(135deg, rgba(108,99,255,0.12) 0%, rgba(108,99,255,0.04) 100%);
+  border: 1px solid rgba(108,99,255,0.2);
+  border-radius: 20px; padding: 60px;
+  text-align: center; position: relative; overflow: hidden;
+}
+.nf-cta-glow {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  width: 600px; height: 300px;
+  background: radial-gradient(ellipse, rgba(108,99,255,0.1) 0%, transparent 70%);
+  pointer-events: none;
+}
+.nf-cta-ttl {
+  font-family: 'Clash Display', sans-serif;
+  font-size: 38px; font-weight: 800; color: var(--white);
+  letter-spacing: -1.2px; margin-bottom: 14px; position: relative;
+}
+.nf-cta-sub { font-size: 15px; color: var(--text2); margin-bottom: 36px; position: relative; }
+
+@media (max-width: 768px) {
+  .nf-hero { padding: 0 20px 56px; min-height: 80vh; }
+  .nf-row, .nf-genre, .nf-feats, .nf-cta { padding-left: 20px; padding-right: 20px; }
+  .nf-hero-title { font-size: 38px; }
+  .nf-genre-grid { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+
+<!-- ── Hero ── -->
+<div class="nf-hero">
+  <div class="nf-hero-backdrop" id="hero-backdrop"></div>
+  <div class="nf-hero-overlay"></div>
+  <div class="nf-hero-content">
+    <div class="nf-badge"><span class="nf-badge-dot"></span>Your Personal Movie Companion</div>
+    <h1 class="nf-hero-title">Find Your Next<br><span class="acc">Favourite</span> Film</h1>
+    <p class="nf-hero-sub">Tell CineBot your mood, genre, or vibe — get instant personalised recommendations powered by Gemini AI.</p>
+    <div class="nf-hero-actions">
+      <button class="nf-btn-primary" onclick="openChat()">
+        <svg viewBox="0 0 24 24" fill="currentColor" style="width:16px;height:16px"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>
+        Ask CineBot
+      </button>
+      <a href="/discover" class="nf-btn-ghost">
+        <svg viewBox="0 0 24 24" fill="currentColor" style="width:16px;height:16px"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+        Browse Movies
+      </a>
+    </div>
+    <div class="nf-hero-stats">
+      <div><div class="nf-stat-num">100k</div><div class="nf-stat-lbl">Movies</div></div>
+      <div class="nf-stat-div"></div>
+      <div><div class="nf-stat-num">chatbot</div><div class="nf-stat-lbl">AI Powered</div></div>
+      <div class="nf-stat-div"></div>
+      <div><div class="nf-stat-num">Free</div><div class="nf-stat-lbl">Forever</div></div>
     </div>
   </div>
 </div>
 
-<!-- ── Trending Row ───────────────────────────── -->
-<div class="trending-section">
-  <div class="trending-header">
-    <h2 class="trending-title">Trending This Week</h2>
-    <a href="/discover" class="trending-see-all">See all →</a>
+<!-- ── Trending Row ── -->
+<div class="nf-row">
+  <div class="nf-row-hd">
+    <h2 class="nf-row-name">🔥 Trending This Week</h2>
+    <a href="/discover" class="nf-see-all">See all →</a>
   </div>
-  <div class="trending-row" id="trending-row">
-    {% for i in range(8) %}<div class="trending-skeleton"></div>{% endfor %}
-  </div>
-</div>
-
-<!-- ── Director Spotlight ─────────────────────── -->
-<div class="director-section" id="director-section" style="opacity:0;transition:opacity 0.5s ease;">
-  <div class="director-inner">
-    <div class="director-label">Director Spotlight</div>
-    <div class="director-content" id="director-content">
-      <div class="director-loading">
-        <div style="display:flex;gap:16px;align-items:center;">
-          <div class="skeleton-line" style="width:90px;height:110px;border-radius:12px;flex-shrink:0;"></div>
-          <div style="flex:1">
-            <div class="skeleton-line" style="width:180px;height:20px;margin-bottom:10px;border-radius:4px;"></div>
-            <div class="skeleton-line" style="width:260px;height:13px;margin-bottom:6px;border-radius:4px;"></div>
-            <div class="skeleton-line" style="width:200px;height:13px;border-radius:4px;"></div>
-          </div>
-        </div>
-      </div>
-    </div>
+  <div class="nf-scroll" id="trending-row">
+    {% for i in range(10) %}<div class="nf-skel"></div>{% endfor %}
   </div>
 </div>
 
-<!-- ── Features Section ───────────────────────── -->
-<div class="features-section">
-  <p class="features-eyebrow">Why CineBot</p>
-  <h2 class="features-heading">Everything You Need to Find Great Films</h2>
-  <div class="features-grid">
-    <div class="feature-card">
-      <div class="feature-icon">🤖</div>
-      <h3 class="feature-title">AI Recommendations</h3>
-      <p class="feature-desc">Tell CineBot your mood or genre and get instant personalised picks powered by Gemini AI.</p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">🎬</div>
-      <h3 class="feature-title">10,000+ Movies</h3>
-      <p class="feature-desc">Powered by TMDB — browse posters, ratings, cast, trailers and full movie details.</p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">📋</div>
-      <h3 class="feature-title">Personal Watchlist</h3>
-      <p class="feature-desc">Save movies you want to watch and rate ones you've seen. Build your personal film library.</p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">🔥</div>
-      <h3 class="feature-title">Trending & Upcoming</h3>
-      <p class="feature-desc">See what's popular this week, what's showing in theatres and what's coming soon.</p>
-    </div>
+<!-- ── Popular Row ── -->
+<div class="nf-row" style="padding-top:0">
+  <div class="nf-row-hd">
+    <h2 class="nf-row-name">⭐ Popular Right Now</h2>
+    <a href="/discover" class="nf-see-all">See all →</a>
+  </div>
+  <div class="nf-scroll" id="popular-row">
+    {% for i in range(10) %}<div class="nf-skel"></div>{% endfor %}
   </div>
 </div>
 
-<!-- ── CTA Banner ─────────────────────────────── -->
-<div class="cta-banner">
-  <div class="cta-banner-inner">
-    <div class="cta-banner-glow"></div>
-    <h2 class="cta-title">Ready to find your next favourite film?</h2>
-    <p class="cta-sub">Chat with CineBot and get AI-powered recommendations in seconds.</p>
-    <button class="cta-btn" onclick="openChat()">
-      <svg viewBox="0 0 24 24" fill="currentColor" style="width:18px;height:18px">
-        <path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/>
-      </svg>
+<!-- ── Top Rated Row ── -->
+<div class="nf-row" style="padding-top:0">
+  <div class="nf-row-hd">
+    <h2 class="nf-row-name">🏆 Top Rated of All Time</h2>
+    <a href="/discover" class="nf-see-all">See all →</a>
+  </div>
+  <div class="nf-scroll" id="toprated-row">
+    {% for i in range(10) %}<div class="nf-skel"></div>{% endfor %}
+  </div>
+</div>
+
+<!-- ── Features ── -->
+<div class="nf-feats">
+  <p class="nf-feats-ey">Why CineBot</p>
+  <h2 class="nf-feats-ttl">Everything You Need to Find Great Films</h2>
+  <div class="nf-feats-grid">
+    <div class="nf-feat"><div class="nf-feat-ico">🤖</div><h3 class="nf-feat-ttl">AI Recommendations</h3><p class="nf-feat-dsc">Tell CineBot your mood — get personalised picks powered by Google Gemini AI instantly.</p></div>
+    <div class="nf-feat"><div class="nf-feat-ico">🎬</div><h3 class="nf-feat-ttl">10,000+ Movies</h3><p class="nf-feat-dsc">Powered by TMDB — browse posters, ratings, cast, trailers and full details.</p></div>
+    <div class="nf-feat"><div class="nf-feat-ico">📋</div><h3 class="nf-feat-ttl">Personal Watchlist</h3><p class="nf-feat-dsc">Save movies, rate what you've seen and build your personal film library.</p></div>
+    <div class="nf-feat"><div class="nf-feat-ico">📺</div><h3 class="nf-feat-ttl">Where to Watch</h3><p class="nf-feat-dsc">See which platform has any movie — Netflix, Prime, Disney+ and more.</p></div>
+  </div>
+</div>
+
+<!-- ── CTA ── -->
+<div class="nf-cta">
+  <div class="nf-cta-inner">
+    <div class="nf-cta-glow"></div>
+    <h2 class="nf-cta-ttl">Ready to find your next favourite film?</h2>
+    <p class="nf-cta-sub">Chat with CineBot and get AI-powered recommendations in seconds.</p>
+    <button class="nf-btn-primary" onclick="openChat()">
+      <svg viewBox="0 0 24 24" fill="currentColor" style="width:16px;height:16px"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>
       Ask CineBot Now
     </button>
   </div>
 </div>
 
-<!-- ── Chat Modal ─────────────────────────────── -->
+<!-- ── Chat Modal ── -->
 <div class="chat-modal-overlay hidden" id="chat-overlay" onclick="handleOverlayClick(event)">
   <div class="chat-modal">
     <div class="chat-modal-header">
       <div class="chat-modal-title">
-        <div class="msg-avatar" style="width:28px;height:28px;">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>
-        </div>
-        <div>
-          <p class="chat-modal-name">CineBot</p>
-          <p class="chat-modal-status">AI Movie Companion — online</p>
-        </div>
+        <div class="msg-avatar" style="width:28px;height:28px;"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg></div>
+        <div><p class="chat-modal-name">CineBot</p><p class="chat-modal-status">AI Movie Companion — online</p></div>
       </div>
       <button class="chat-modal-close" onclick="closeChat()">&#x2715;</button>
     </div>
@@ -138,24 +329,16 @@
         <div class="sidebar-divider"></div>
         <p class="sidebar-section-label">Recent</p>
         {% for sess in sessions %}
-        <button class="sidebar-btn" onclick="loadSession('{{ sess.session_id }}')">
-          {{ sess.title[:24] }}{% if sess.title|length > 24 %}...{% endif %}
-        </button>
+        <button class="sidebar-btn" onclick="loadSession('{{ sess.session_id }}')">{{ sess.title[:24] }}{% if sess.title|length > 24 %}...{% endif %}</button>
         {% endfor %}
         {% endif %}
         <div class="sidebar-divider"></div>
-        <div class="sidebar-user">
-          <p class="sidebar-user-label">Signed in as</p>
-          <p class="sidebar-user-name">{{ current_user.username }}</p>
-        </div>
+        <div class="sidebar-user"><p class="sidebar-user-label">Signed in as</p><p class="sidebar-user-name">{{ current_user.username }}</p></div>
       </div>
       <div class="chat-modal-main">
         <div class="messages" id="messages">
           <div class="msg-bot msg-enter">
-            <div class="msg-meta">
-              <div class="msg-avatar"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg></div>
-              <span class="msg-name">CINEBOT</span>
-            </div>
+            <div class="msg-meta"><div class="msg-avatar"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg></div><span class="msg-name">CINEBOT</span></div>
             <div class="bubble-bot">Tell me your mood, a genre you love, or what kind of film you are in the mood for — I will find something perfect.</div>
           </div>
           {% for msg in history %}
@@ -163,10 +346,7 @@
           <div class="msg-user"><div class="bubble-user">{{ msg.message }}</div></div>
           {% else %}
           <div class="msg-bot">
-            <div class="msg-meta">
-              <div class="msg-avatar"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg></div>
-              <span class="msg-name">CINEBOT</span>
-            </div>
+            <div class="msg-meta"><div class="msg-avatar"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg></div><span class="msg-name">CINEBOT</span></div>
             <div class="bubble-bot">{{ msg.message }}</div>
           </div>
           {% endif %}
@@ -175,8 +355,7 @@
         <div class="cards-row hidden" id="movie-cards"></div>
         <div class="chat-modal-input">
           <div class="input-row">
-            <input class="chat-input" id="user-input" type="text"
-              placeholder="Ask about movies, moods, genres..." autocomplete="off">
+            <input class="chat-input" id="user-input" type="text" placeholder="Ask about movies, moods, genres..." autocomplete="off">
             <button class="send-btn" id="send-btn">Send</button>
           </div>
         </div>
@@ -192,153 +371,60 @@
 
 <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
 <script>
-const ICON_SVG = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>`;
+const ICON_SVG = `<svg viewBox="0 0 24 24" fill="currentColor" style="width:24px;height:24px"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>`;
 
-// ── Chat modal ──────────────────────────────────
-function openChat() {
-  document.getElementById('chat-overlay').classList.remove('hidden');
-  document.getElementById('chat-fab').classList.add('hidden');
-  setTimeout(() => document.getElementById('user-input').focus(), 300);
-}
-function closeChat() {
-  document.getElementById('chat-overlay').classList.add('hidden');
-  document.getElementById('chat-fab').classList.remove('hidden');
-}
-function handleOverlayClick(e) {
-  if (e.target === document.getElementById('chat-overlay')) closeChat();
-}
-async function loadSession(sid) {
-  const res  = await fetch(`/api/session/${sid}`);
-  const msgs = await res.json();
-  const div  = document.getElementById('messages');
-  div.innerHTML = '';
-  msgs.forEach(m => addMessage(m.message, m.role === 'user' ? 'user' : 'assistant'));
+function openChat(){document.getElementById('chat-overlay').classList.remove('hidden');document.getElementById('chat-fab').classList.add('hidden');setTimeout(()=>document.getElementById('user-input').focus(),300);}
+function closeChat(){document.getElementById('chat-overlay').classList.add('hidden');document.getElementById('chat-fab').classList.remove('hidden');}
+function handleOverlayClick(e){if(e.target===document.getElementById('chat-overlay'))closeChat();}
+async function loadSession(sid){const res=await fetch(`/api/session/${sid}`);const msgs=await res.json();const div=document.getElementById('messages');div.innerHTML='';msgs.forEach(m=>addMessage(m.message,m.role==='user'?'user':'assistant'));}
+
+function makeCard(m){
+  const a=document.createElement('a');
+  a.href=`/movie/${m.id}`;a.className='nf-card card-enter';
+  a.innerHTML=`
+    ${m.poster?`<img src="${m.poster}" loading="lazy" alt="${m.title}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`:''}
+    <div class="nf-card-fb" style="display:${m.poster?'none':'flex'}">${ICON_SVG}</div>
+    <div class="nf-card-ov">
+      <p class="nf-card-name">${m.title}</p>
+      <p class="nf-card-rt">★ ${m.rating} · ${m.year||'—'}</p>
+    </div>`;
+  return a;
 }
 
-// ── Trending row ────────────────────────────────
-async function loadTrending() {
-  try {
-    const res    = await fetch('/api/discover?tab=trending&limit=12');
-    const data   = await res.json();
-    const movies = (data.movies || []).slice(0, 12);
-    const row    = document.getElementById('trending-row');
-    row.innerHTML = '';
-    movies.forEach(m => {
-      const card      = document.createElement('a');
-      card.href       = `/movie/${m.id}`;
-      card.className  = 'trending-card card-enter';
-      card.innerHTML  = `
-        ${m.poster ? `<img src="${m.poster}" loading="lazy" alt="${m.title}">` : '<div class="trending-fallback"></div>'}
-        <div class="trending-card-info">
-          <p class="trending-card-title">${m.title}</p>
-          <p class="trending-card-meta">★ ${m.rating}</p>
-        </div>`;
-      row.appendChild(card);
-    });
-  } catch(e) {}
+async function loadRow(url, id){
+  try{
+    const res=await fetch(url);const data=await res.json();
+    const movies=(data.movies||[]).slice(0,14);
+    const row=document.getElementById(id);
+    if(!movies.length){row.innerHTML='';return;}
+    row.innerHTML='';movies.forEach(m=>row.appendChild(makeCard(m)));
+  }catch(e){}
 }
 
-// ── Featured spotlight ──────────────────────────
-async function loadSpotlight() {
-  try {
-    const res    = await fetch('/api/discover?tab=trending&limit=5');
-    const data   = await res.json();
-    const movies = data.movies || [];
-    if (!movies.length) {
-      document.getElementById('spotlight-section').style.display = 'none';
-      return;
+async function loadHeroBg(){
+  try{
+    const res=await fetch('/api/discover?tab=trending&limit=5');
+    const data=await res.json();const movies=data.movies||[];
+    const bg=document.getElementById('hero-backdrop');
+    const m=movies.find(x=>x.backdrop)||movies[0];
+    if(m&&m.backdrop){
+      bg.style.backgroundImage=`url('${m.backdrop}')`;
+      setTimeout(()=>bg.classList.add('loaded'),100);
     }
-    const m       = movies[Math.floor(Math.random() * Math.min(5, movies.length))];
-    const section = document.getElementById('spotlight-section');
-    section.style.backgroundImage = m.backdrop ? `url('${m.backdrop}')` : '';
-    section.innerHTML = `
-      <div class="spotlight-overlay"></div>
-      <div class="spotlight-content">
-        <p class="spotlight-label">Featured Film</p>
-        <h2 class="spotlight-title">${m.title}</h2>
-        <div class="spotlight-meta">
-          <span>${m.year || '—'}</span>
-          <span>★ ${m.rating}/10</span>
-          <span>${m.votes ? m.votes.toLocaleString() + ' votes' : ''}</span>
-        </div>
-        <p class="spotlight-overview">${(m.overview || '').slice(0, 180)}${m.overview && m.overview.length > 180 ? '...' : ''}</p>
-        <div class="spotlight-actions">
-          <a href="/movie/${m.id}" class="spotlight-btn-primary">View Details</a>
-          <button class="spotlight-btn-secondary"
-            onclick="addSpotlightWatchlist(${m.id},'${m.title.replace(/'/g,"\\'")}','${m.poster||''}','${m.year||''}',${m.rating})">
-            + Watchlist
-          </button>
-        </div>
-      </div>`;
-  } catch(e) {}
+  }catch(e){}
 }
 
-async function addSpotlightWatchlist(id, title, poster, year, rating) {
-  const res  = await fetch('/api/watchlist/add', {
-    method: 'POST', headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({tmdb_id: id, title, poster, year, rating})
-  });
-  const data = await res.json();
-  showHomeToast(data.status === 'added' ? `"${title}" added to watchlist!` : 'Already in watchlist.');
+function showHomeToast(msg){
+  const t=document.createElement('div');t.className='toast';t.textContent=msg;
+  document.body.appendChild(t);setTimeout(()=>t.classList.add('toast-show'),10);
+  setTimeout(()=>{t.classList.remove('toast-show');setTimeout(()=>t.remove(),300);},3000);
 }
 
-// ── Director spotlight — uses new fast API ──────
-async function loadDirectorSpotlight() {
-  const section   = document.getElementById('director-section');
-  const container = document.getElementById('director-content');
-  try {
-    const res = await fetch('/api/director-spotlight');
-    const d   = await res.json();
-
-    if (!d || !d.name) {
-      section.style.display = 'none';
-      return;
-    }
-
-    container.innerHTML = `
-      <div class="director-left">
-        ${d.photo
-          ? `<img src="${d.photo}" alt="${d.name}" class="director-photo">`
-          : `<div class="director-photo-fallback">${d.name[0]}</div>`}
-        <div class="director-info">
-          <p class="director-name">${d.name}</p>
-          <p class="director-bio">${d.bio}</p>
-          <a href="/search?q=${encodeURIComponent(d.name)}" class="director-link">View all films →</a>
-        </div>
-      </div>
-      <div class="director-films">
-        ${(d.movies || []).map(m => `
-          <a href="/movie/${m.id}" class="director-film-card">
-            ${m.poster
-              ? `<img src="${m.poster}" alt="${m.title}" loading="lazy">`
-              : `<div class="director-film-fallback">${ICON_SVG}</div>`}
-            <p class="director-film-title">${m.title}</p>
-            <p class="director-film-year">${m.year}</p>
-          </a>`).join('')}
-      </div>`;
-
-    // Fade in
-    section.style.opacity = '1';
-
-  } catch(e) {
-    section.style.display = 'none';
-  }
-}
-
-function showHomeToast(msg) {
-  const t = document.createElement('div');
-  t.className   = 'toast';
-  t.textContent = msg;
-  document.body.appendChild(t);
-  setTimeout(() => t.classList.add('toast-show'), 10);
-  setTimeout(() => { t.classList.remove('toast-show'); setTimeout(() => t.remove(), 300); }, 3000);
-}
-
-// Load all sections in parallel
 Promise.all([
-  loadTrending(),
-  loadSpotlight(),
-  loadDirectorSpotlight(),
+  loadHeroBg(),
+  loadRow('/api/discover?tab=trending&limit=14','trending-row'),
+  loadRow('/api/discover?tab=popular&limit=14','popular-row'),
+  loadRow('/api/discover?tab=top_rated&limit=14','toprated-row'),
 ]);
 </script>
 {% endblock %}

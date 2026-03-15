@@ -1,14 +1,125 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="discover-wrap">
 
-  <div class="discover-header">
-    <h1 class="discover-title">Discover</h1>
-    <p class="discover-sub">Browse movies by genre, mood, or what's showing now</p>
+<style>
+:root {
+  --acc: #6c5ce7;
+  --acc-hover: #7d6ff0;
+  --acc-dim: rgba(108,92,231,0.12);
+  --acc-border: rgba(108,92,231,0.35);
+  --green: #46d369;
+}
+.disc-wrap { max-width: 1400px; margin: 0 auto; padding: 40px 48px; position: relative; z-index: 1; }
+.disc-hd { margin-bottom: 32px; }
+.disc-hd-top { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 6px; }
+.disc-title { font-family: 'Clash Display', sans-serif; font-size: 48px; font-weight: 800; color: #fff; letter-spacing: -2px; line-height: 1; }
+.disc-count { font-size: 13px; color: rgba(255,255,255,0.3); }
+.disc-sub { font-size: 14px; color: rgba(255,255,255,0.42); margin-top: 8px; }
+
+/* Tabs */
+.disc-tabs { display: flex; gap: 4px; margin-bottom: 16px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.disc-tabs::-webkit-scrollbar { display: none; }
+.disc-tab {
+  flex-shrink: 0; background: none; border: none;
+  color: rgba(255,255,255,0.45);
+  font-family: 'Cabinet Grotesk', sans-serif;
+  font-size: 14px; font-weight: 600;
+  padding: 9px 20px; border-radius: 4px;
+  cursor: pointer; transition: all 0.18s; white-space: nowrap;
+}
+.disc-tab:hover { color: #fff; background: rgba(255,255,255,0.07); }
+.disc-tab.active { background: var(--acc); color: #fff; }
+
+/* Genre pills */
+.genre-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 30px; }
+.genre-pill {
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.09);
+  color: rgba(255,255,255,0.6); font-size: 12px; font-weight: 600;
+  padding: 6px 16px; border-radius: 100px; cursor: pointer;
+  transition: all 0.16s; white-space: nowrap;
+}
+.genre-pill:hover { background: rgba(255,255,255,0.12); color: #fff; }
+.genre-pill.active { background: var(--acc-dim); border-color: var(--acc-border); color: #a78bfa; }
+
+/* Grid */
+.disc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); gap: 6px; }
+
+/* Card */
+.disc-card {
+  position: relative; border-radius: 4px; overflow: hidden;
+  cursor: pointer; background: #141414; aspect-ratio: 2/3;
+  transition: transform 0.3s cubic-bezier(0.25,0.46,0.45,0.94), z-index 0s 0.3s;
+}
+.disc-card:hover { transform: scale(1.14); z-index: 10; transition: transform 0.3s cubic-bezier(0.25,0.46,0.45,0.94); }
+.disc-card img { width: 100%; height: 100%; object-fit: cover; display: block; transition: filter 0.3s; }
+.disc-card:hover img { filter: brightness(0.45); }
+.disc-card-fb { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.15); }
+.disc-card-ov {
+  position: absolute; inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,.96) 0%, rgba(0,0,0,.2) 55%, transparent 100%);
+  padding: 12px 10px 10px; display: flex; flex-direction: column;
+  justify-content: flex-end; opacity: 0; transition: opacity 0.22s;
+}
+.disc-card:hover .disc-card-ov { opacity: 1; }
+.disc-card-title { font-family: 'Clash Display', sans-serif; font-size: 12px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px; }
+.disc-card-meta { font-size: 10px; color: rgba(255,255,255,0.5); margin-bottom: 8px; }
+.disc-card-rt { color: var(--green); font-weight: 600; }
+.disc-card-btns { display: flex; gap: 5px; }
+.disc-card-btn { flex: 1; font-size: 10px; font-weight: 700; padding: 5px 4px; border-radius: 3px; cursor: pointer; border: none; transition: all 0.15s; font-family: 'Cabinet Grotesk', sans-serif; }
+.disc-card-btn-w { background: rgba(255,255,255,0.14); color: #fff; }
+.disc-card-btn-w:hover { background: rgba(255,255,255,0.26); }
+.disc-card-btn-r { background: var(--acc); color: #fff; }
+.disc-card-btn-r:hover { background: var(--acc-hover); }
+
+/* States */
+.disc-loading { grid-column: 1/-1; text-align: center; padding: 80px 20px; color: rgba(255,255,255,0.3); font-size: 13px; }
+.disc-spinner { width: 38px; height: 38px; border: 3px solid var(--acc-dim); border-top-color: var(--acc); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 14px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.disc-skel { border-radius: 4px; aspect-ratio: 2/3; background: linear-gradient(90deg,#1a1a1a 0%,#2c2c2c 50%,#1a1a1a 100%); background-size: 200% 100%; animation: shim 1.6s infinite; }
+@keyframes shim { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+/* Load more */
+.disc-loadmore { grid-column: 1/-1; display: flex; justify-content: center; padding: 32px 0 8px; }
+.disc-loadmore-btn {
+  background: rgba(108,92,231,0.1); border: 1px solid var(--acc-border);
+  color: #a78bfa; font-family: 'Clash Display', sans-serif;
+  font-size: 13px; font-weight: 600; padding: 12px 36px;
+  border-radius: 4px; cursor: pointer; transition: all 0.18s;
+}
+.disc-loadmore-btn:hover { background: rgba(108,92,231,0.2); color: #fff; }
+
+/* Modal */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(12px); z-index: 500; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.modal-overlay.hidden { display: none; }
+.modal-card { background: #1a1a1a; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 28px; width: 100%; max-width: 420px; box-shadow: 0 40px 80px rgba(0,0,0,0.7); }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.modal-title { font-family: 'Clash Display', sans-serif; font-size: 18px; font-weight: 700; color: #fff; }
+.modal-close { background: none; border: none; color: rgba(255,255,255,0.35); font-size: 20px; cursor: pointer; }
+.star-row { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+.star-btn { flex: 1; min-width: 32px; padding: 10px 4px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.09); color: rgba(255,255,255,0.55); font-size: 13px; font-weight: 700; border-radius: 5px; cursor: pointer; transition: all 0.15s; font-family: 'Clash Display', sans-serif; }
+.star-btn:hover,.star-btn.active { background: var(--acc); border-color: var(--acc); color: #fff; }
+.modal-review { width: 100%; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.09); border-radius: 7px; color: #fff; font-size: 13px; padding: 12px; margin-bottom: 16px; min-height: 80px; resize: vertical; font-family: 'Cabinet Grotesk', sans-serif; outline: none; }
+.modal-review:focus { border-color: var(--acc-border); }
+.btn-primary { width: 100%; background: var(--acc); color: #fff; font-family: 'Clash Display', sans-serif; font-size: 14px; font-weight: 700; padding: 13px; border: none; border-radius: 6px; cursor: pointer; transition: background 0.18s; }
+.btn-primary:hover { background: var(--acc-hover); }
+
+@media (max-width: 768px) {
+  .disc-wrap { padding: 24px 16px; }
+  .disc-title { font-size: 32px; }
+  .disc-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+}
+</style>
+
+<div class="disc-wrap">
+  <div class="disc-hd">
+    <div class="disc-hd-top">
+      <h1 class="disc-title">Discover</h1>
+      <span class="disc-count" id="movie-count"></span>
+    </div>
+    <p class="disc-sub">Browse movies by genre, mood, or what's showing now</p>
   </div>
 
-  <!-- Tabs -->
-  <div class="discover-tabs" id="discover-tabs">
+  <div class="disc-tabs">
     <button class="disc-tab active" onclick="loadTab(this,'popular')">Popular</button>
     <button class="disc-tab" onclick="loadTab(this,'trending')">Trending</button>
     <button class="disc-tab" onclick="loadTab(this,'top_rated')">Top Rated</button>
@@ -16,18 +127,16 @@
     <button class="disc-tab" onclick="loadTab(this,'upcoming')">Upcoming</button>
   </div>
 
-  <!-- Genre filters -->
-  <div class="genre-filters" id="genre-filters">
-    <button class="genre-pill active" data-genre="" onclick="loadGenre(this, '')">All Genres</button>
-    {% for genre in ['action','comedy','drama','horror','thriller','romance','sci-fi','fantasy','crime','animation','documentary'] %}
-    <button class="genre-pill" data-genre="{{ genre }}" onclick="loadGenre(this, '{{ genre }}')">{{ genre | capitalize }}</button>
+  <div class="genre-row">
+    <button class="genre-pill active" data-genre="" onclick="loadGenre(this,'')">All Genres</button>
+    {% for g in ['action','comedy','drama','horror','thriller','romance','sci-fi','fantasy','crime','animation','documentary'] %}
+    <button class="genre-pill" data-genre="{{ g }}" onclick="loadGenre(this,'{{ g }}')">{{ g|capitalize }}</button>
     {% endfor %}
   </div>
 
-  <div class="discover-grid" id="discover-grid">
-    <div class="discover-loading">Loading...</div>
+  <div class="disc-grid" id="disc-grid">
+    {% for i in range(20) %}<div class="disc-skel"></div>{% endfor %}
   </div>
-
 </div>
 
 <!-- Rating modal -->
@@ -37,114 +146,108 @@
       <p class="modal-title" id="modal-movie-title">Rate Movie</p>
       <button class="modal-close" onclick="closeModal()">&#x2715;</button>
     </div>
-    <p style="font-size:12px;color:var(--text3);margin-bottom:14px;">Select your rating out of 10</p>
-    <div class="star-row">
-      {% for i in range(1, 11) %}
-      <button class="star-btn" data-val="{{ i }}" onclick="selectStar({{ i }})">{{ i }}</button>
-      {% endfor %}
-    </div>
+    <p style="font-size:12px;color:rgba(255,255,255,0.35);margin-bottom:14px;">Select your rating out of 10</p>
+    <div class="star-row">{% for i in range(1,11) %}<button class="star-btn" data-val="{{ i }}" onclick="selectStar({{ i }})">{{ i }}</button>{% endfor %}</div>
     <textarea class="modal-review" id="modal-review" placeholder="Write a short review (optional)..."></textarea>
     <button class="btn-primary" onclick="submitRating()">Submit Rating</button>
   </div>
 </div>
 
 <script>
-let currentMovie   = null;
-let selectedRating = 0;
-let currentTab     = 'popular';
-let currentGenre   = '';
+let currentMovie=null,selectedRating=0,currentTab='popular',currentGenre='',allMovies=[],displayedCount=0;
+const BATCH=40;
+const ICON=`<svg viewBox="0 0 24 24" fill="currentColor" style="width:28px;height:28px;opacity:.25"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>`;
 
-const ICON = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>`;
+function makeCard(m,i){
+  const card=document.createElement('div');
+  card.className='disc-card card-enter';
+  card.style.animationDelay=`${(i%BATCH)*20}ms`;
+  const safeM=encodeURIComponent(JSON.stringify({id:m.id,tmdb_id:m.id,title:m.title,poster:m.poster||'',year:m.year||'',rating:m.rating||0}));
+  card.innerHTML=`
+    ${m.poster?`<img src="${m.poster}" loading="lazy" alt="${m.title}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`:''}
+    <div class="disc-card-fb" style="display:${m.poster?'none':'flex'}">${ICON}</div>
+    <div class="disc-card-ov">
+      <p class="disc-card-title">${m.title}</p>
+      <p class="disc-card-meta">${m.year||'—'} · <span class="disc-card-rt">★ ${m.rating}</span></p>
+      <div class="disc-card-btns">
+        <button class="disc-card-btn disc-card-btn-w" onclick="event.stopPropagation();addWatch(decodeURIComponent('${safeM}'))">+ Watch</button>
+        <button class="disc-card-btn disc-card-btn-r" onclick="event.stopPropagation();openRating(decodeURIComponent('${safeM}'))">Rate</button>
+      </div>
+    </div>`;
+  card.addEventListener('click',()=>window.location.href=`/movie/${m.id}`);
+  return card;
+}
 
-async function loadMovies() {
-  const grid = document.getElementById('discover-grid');
-  grid.innerHTML = '<div class="discover-loading">Loading...</div>';
-  try {
-    const url  = `/api/discover?tab=${currentTab}&genre=${currentGenre}`;
-    const res  = await fetch(url);
-    const data = await res.json();
-    const movies = data.movies || [];
-    if (!movies.length) { grid.innerHTML = '<p class="discover-loading">No movies found.</p>'; return; }
-    grid.innerHTML = '';
-    movies.forEach((m, i) => {
-      const card = document.createElement('div');
-      card.className = 'disc-card card-enter';
-      card.style.animationDelay = `${i * 30}ms`;
-      const safeM = encodeURIComponent(JSON.stringify(m));
-      card.innerHTML = `
-        ${m.poster ? `<img src="${m.poster}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">` : ''}
-        <div class="disc-card-fallback" style="display:${m.poster?'none':'flex'}">${ICON}</div>
-        <div class="disc-card-overlay">
-          <p class="disc-card-title">${m.title}</p>
-          <p class="disc-card-meta">${m.year||'—'} &middot; ★ ${m.rating}/10</p>
-          <div class="disc-card-actions">
-            <button onclick="event.stopPropagation();addToWatchlist(decodeURIComponent('${safeM}'))">+ Watch</button>
-            <button onclick="event.stopPropagation();openRating(decodeURIComponent('${safeM}'))">Rate</button>
-          </div>
-        </div>`;
-      card.addEventListener('click', () => window.location.href = `/movie/${m.id}`);
-      grid.appendChild(card);
-    });
-  } catch(e) {
-    grid.innerHTML = '<p class="discover-loading">Failed to load. Please try again.</p>';
+function renderBatch(start){
+  const grid=document.getElementById('disc-grid');
+  const batch=allMovies.slice(start,start+BATCH);
+  batch.forEach((m,i)=>grid.appendChild(makeCard(m,start+i)));
+  displayedCount=start+batch.length;
+  const old=document.getElementById('loadmore-btn');if(old)old.remove();
+  document.getElementById('movie-count').textContent=`${displayedCount} of ${allMovies.length} movies`;
+  if(displayedCount<allMovies.length){
+    const wrap=document.createElement('div');wrap.className='disc-loadmore';wrap.id='loadmore-btn';
+    const btn=document.createElement('button');btn.className='disc-loadmore-btn';
+    btn.textContent=`Load More`;
+    btn.onclick=()=>{wrap.remove();renderBatch(displayedCount);};
+    wrap.appendChild(btn);grid.appendChild(wrap);
   }
 }
 
-function loadTab(btn, tab) {
-  document.querySelectorAll('.disc-tab').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  currentTab   = tab;
-  currentGenre = '';
-  document.querySelectorAll('.genre-pill').forEach(b => b.classList.remove('active'));
+async function loadMovies(){
+  const grid=document.getElementById('disc-grid');
+  grid.innerHTML=`<div class="disc-loading"><div class="disc-spinner"></div>Loading movies...</div>`;
+  document.getElementById('movie-count').textContent='';
+  try{
+    const res=await fetch(`/api/discover?tab=${currentTab}&genre=${currentGenre}&limit=120`);
+    const data=await res.json();
+    allMovies=data.movies||[];
+    if(!allMovies.length){grid.innerHTML=`<div class="disc-loading">No movies found. Try a different genre or tab.</div>`;return;}
+    grid.innerHTML='';displayedCount=0;renderBatch(0);
+  }catch(e){grid.innerHTML=`<div class="disc-loading">Failed to load. Please try again.</div>`;}
+}
+
+function loadTab(btn,tab){
+  document.querySelectorAll('.disc-tab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
+  currentTab=tab;currentGenre='';
+  document.querySelectorAll('.genre-pill').forEach(b=>b.classList.remove('active'));
   document.querySelector('.genre-pill[data-genre=""]').classList.add('active');
   loadMovies();
 }
-
-function loadGenre(btn, genre) {
-  document.querySelectorAll('.genre-pill').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  currentGenre = genre;
-  loadMovies();
+function loadGenre(btn,genre){
+  document.querySelectorAll('.genre-pill').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
+  currentGenre=genre;loadMovies();
 }
-
-async function addToWatchlist(movieStr) {
-  const m   = JSON.parse(movieStr);
-  const res = await fetch('/api/watchlist/add', {
-    method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({tmdb_id:m.id||m.tmdb_id, title:m.title, poster:m.poster||'', year:m.year||'', rating:m.rating||0})
-  });
-  const data = await res.json();
-  showToast(data.status==='added' ? `"${m.title}" added to watchlist!` : 'Already in watchlist.');
+async function addWatch(str){
+  const m=JSON.parse(str);
+  const res=await fetch('/api/watchlist/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tmdb_id:m.id||m.tmdb_id,title:m.title,poster:m.poster||'',year:m.year||'',rating:m.rating||0})});
+  const data=await res.json();
+  showToast(data.status==='added'?`"${m.title}" added!`:'Already in watchlist.');
 }
-
-function openRating(movieStr) {
-  currentMovie = JSON.parse(movieStr); selectedRating = 0;
-  document.getElementById('modal-movie-title').textContent = currentMovie.title;
-  document.getElementById('modal-review').value = '';
-  document.querySelectorAll('.star-btn').forEach(b => b.classList.remove('active'));
+function openRating(str){
+  currentMovie=JSON.parse(str);selectedRating=0;
+  document.getElementById('modal-movie-title').textContent=currentMovie.title;
+  document.getElementById('modal-review').value='';
+  document.querySelectorAll('.star-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('rating-modal').classList.remove('hidden');
 }
-function closeModal() { document.getElementById('rating-modal').classList.add('hidden'); }
-function selectStar(val) {
-  selectedRating = val;
-  document.querySelectorAll('.star-btn').forEach(b => b.classList.toggle('active', parseInt(b.dataset.val) <= val));
+function closeModal(){document.getElementById('rating-modal').classList.add('hidden');}
+document.getElementById('rating-modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
+function selectStar(val){selectedRating=val;document.querySelectorAll('.star-btn').forEach(b=>b.classList.toggle('active',parseInt(b.dataset.val)<=val));}
+async function submitRating(){
+  if(!selectedRating){showToast('Please select a rating.');return;}
+  const res=await fetch('/api/rate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tmdb_id:currentMovie.id||currentMovie.tmdb_id,title:currentMovie.title,poster:currentMovie.poster||'',year:currentMovie.year||'',rating:selectedRating,review:document.getElementById('modal-review').value})});
+  const data=await res.json();
+  if(data.status==='rated'){closeModal();showToast('Rating saved! ⭐');}
 }
-async function submitRating() {
-  if (!selectedRating) { showToast('Please select a rating first.'); return; }
-  const res = await fetch('/api/rate', {
-    method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({tmdb_id:currentMovie.id||currentMovie.tmdb_id, title:currentMovie.title, poster:currentMovie.poster||'', year:currentMovie.year||'', rating:selectedRating, review:document.getElementById('modal-review').value})
-  });
-  const data = await res.json();
-  if (data.status==='rated') { closeModal(); showToast('Rating saved!'); }
-}
-function showToast(msg) {
-  const t = document.createElement('div'); t.className='toast'; t.textContent=msg;
-  document.body.appendChild(t);
-  setTimeout(() => t.classList.add('toast-show'), 10);
-  setTimeout(() => { t.classList.remove('toast-show'); setTimeout(() => t.remove(), 300); }, 3000);
+function showToast(msg){
+  const t=document.createElement('div');t.className='toast';t.textContent=msg;
+  document.body.appendChild(t);setTimeout(()=>t.classList.add('toast-show'),10);
+  setTimeout(()=>{t.classList.remove('toast-show');setTimeout(()=>t.remove(),300);},3000);
 }
 
-loadMovies();
+const urlGenre=new URLSearchParams(window.location.search).get('genre');
+if(urlGenre){const pill=document.querySelector(`.genre-pill[data-genre="${urlGenre}"]`);if(pill)loadGenre(pill,urlGenre);else loadMovies();}
+else loadMovies();
 </script>
 {% endblock %}

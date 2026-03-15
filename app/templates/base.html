@@ -9,6 +9,53 @@
   <link rel="preconnect" href="https://api.fontshare.com">
   <link href="https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&f[]=cabinet-grotesk@400,500,700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <style>
+    /* ── Search Dropdown ── */
+    .search-dropdown {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0; right: 0;
+      background: #1a1a2e;
+      border: 1px solid rgba(108,92,231,0.25);
+      border-radius: 8px;
+      overflow: hidden;
+      z-index: 9999;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+      max-height: 420px;
+      overflow-y: auto;
+    }
+    .search-dropdown::-webkit-scrollbar { width: 3px; }
+    .search-dropdown::-webkit-scrollbar-thumb { background: rgba(108,92,231,0.3); border-radius: 2px; }
+    .search-drop-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 14px; cursor: pointer; text-decoration: none;
+      transition: background 0.15s;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .search-drop-item:last-child { border-bottom: none; }
+    .search-drop-item:hover { background: rgba(108,92,231,0.1); }
+    .search-drop-poster {
+      width: 36px; height: 54px; border-radius: 3px;
+      object-fit: cover; flex-shrink: 0; background: #2a2a2a;
+    }
+    .search-drop-info { flex: 1; min-width: 0; }
+    .search-drop-title {
+      font-family: 'Clash Display', sans-serif;
+      font-size: 13px; font-weight: 700; color: #fff;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .search-drop-meta { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+    .search-drop-rating { color: #46d369; font-weight: 600; }
+    .search-drop-msg { padding: 18px 14px; font-size: 13px; color: rgba(255,255,255,0.3); text-align: center; }
+    .search-drop-footer {
+      padding: 10px 14px; font-size: 12px; font-weight: 600;
+      color: #a78bfa; text-align: center; cursor: pointer;
+      font-family: 'Clash Display', sans-serif; text-decoration: none;
+      display: block; background: rgba(108,92,231,0.06);
+      transition: background 0.15s;
+    }
+    .search-drop-footer:hover { background: rgba(108,92,231,0.15); color: #fff; }
+  </style>
 </head>
 <body>
 
@@ -29,9 +76,7 @@
     </div>
 
     {% if current_user.is_authenticated %}
-
-    <!-- Search bar with submit button -->
-    <div class="search-wrap" id="search-wrap">
+    <div class="search-wrap" id="search-wrap" style="position:relative;">
       <div class="search-bar-row">
         <div class="search-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -40,23 +85,20 @@
         </div>
         <input class="search-input" id="search-input" type="text"
           placeholder="Search movies..." autocomplete="off">
-        <button class="search-submit-btn" id="search-submit" onclick="doSearch()">
-          Go
-        </button>
+        <button class="search-submit-btn" id="search-submit">Go</button>
       </div>
-      <div class="search-dropdown hidden" id="search-dropdown"></div>
+      <div class="search-dropdown" id="search-dropdown" style="display:none;"></div>
     </div>
 
     <div class="nav-links">
-
-      <a href="/" class="nav-link {% if request.path == '/' %}nav-link-active{% endif %}">Chat</a>
-      <a href="/discover" class="nav-link {% if request.path == '/discover' %}nav-link-active{% endif %}">Discover</a>
-      <a href="/activity" class="nav-link {% if request.path == '/activity' %}nav-link-active{% endif %}">Activity</a>
+      <a href="/"          class="nav-link {% if request.path == '/'          %}nav-link-active{% endif %}">Chat</a>
+      <a href="/discover"  class="nav-link {% if request.path == '/discover'  %}nav-link-active{% endif %}">Discover</a>
+      <a href="/activity"  class="nav-link {% if request.path == '/activity'  %}nav-link-active{% endif %}">Activity</a>
       <a href="/streaming" class="nav-link {% if request.path == '/streaming' %}nav-link-active{% endif %}">Streaming</a>
-      <a href="/profile" class="nav-link {% if request.path == '/profile' %}nav-link-active{% endif %}">Profile</a>
-      <a href="/logout" class="nav-link nav-link-danger">Logout</a>
+      <a href="/profile"   class="nav-link {% if request.path == '/profile'   %}nav-link-active{% endif %}">Profile</a>
+      <a href="/logout"    class="nav-link nav-link-danger">Logout</a>
       <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">
-        <svg id="theme-icon-dark" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <svg id="theme-icon-dark"  viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
         <svg id="theme-icon-light" viewBox="0 0 24 24" fill="currentColor" style="display:none"><circle cx="12" cy="12" r="4"/><path stroke="currentColor" stroke-width="2" fill="none" d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
       </button>
     </div>
@@ -72,7 +114,7 @@
   <main>{% block content %}{% endblock %}</main>
 
   <script>
-  // ── Theme ──────────────────────────────────────
+  // ── Theme ────────────────────────────────────────────────────────────────
   function toggleTheme() {
     const isLight = document.body.classList.toggle('light');
     localStorage.setItem('theme', isLight ? 'light' : 'dark');
@@ -85,62 +127,84 @@
     document.getElementById('theme-icon-light').style.display = 'block';
   }
 
-  // ── Search ─────────────────────────────────────
-  let searchTimeout;
-  const searchInput    = document.getElementById('search-input');
-  const searchDropdown = document.getElementById('search-dropdown');
+  // ── Search ───────────────────────────────────────────────────────────────
+  (function() {
+    const inp  = document.getElementById('search-input');
+    const btn  = document.getElementById('search-submit');
+    const drop = document.getElementById('search-dropdown');
+    if (!inp) return;
 
-  function doSearch() {
-    const q = searchInput ? searchInput.value.trim() : '';
-    if (q.length >= 2) {
-      window.location.href = `/search?q=${encodeURIComponent(q)}`;
+    function goSearch() {
+      const q = inp.value.trim();
+      if (q.length >= 1) window.location.href = `/search?q=${encodeURIComponent(q)}`;
     }
-  }
 
-  if (searchInput) {
-    // Live dropdown
-    searchInput.addEventListener('input', () => {
-      clearTimeout(searchTimeout);
-      const q = searchInput.value.trim();
-      if (!q || q.length < 2) { searchDropdown.classList.add('hidden'); return; }
-      searchTimeout = setTimeout(async () => {
+    btn.addEventListener('click', goSearch);
+
+    inp.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); goSearch(); }
+      if (e.key === 'Escape') { drop.style.display = 'none'; inp.blur(); }
+    });
+
+    let timer = null, lastQ = '';
+
+    inp.addEventListener('input', function() {
+      const q = this.value.trim();
+      if (q === lastQ) return;
+      lastQ = q;
+      clearTimeout(timer);
+
+      if (q.length < 2) { drop.style.display = 'none'; return; }
+
+      drop.style.display = 'block';
+      drop.innerHTML = '<div class="search-drop-msg">Searching...</div>';
+
+      timer = setTimeout(async () => {
         try {
           const res  = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
           const data = await res.json();
           const results = data.results || [];
+
           if (!results.length) {
-            searchDropdown.innerHTML = '<div class="search-empty">No results found</div>';
-          } else {
-            searchDropdown.innerHTML = results.map(m => `
-              <a class="search-result" href="/movie/${m.id}">
-                ${m.poster
-                  ? `<img class="search-result-poster" src="${m.poster}" loading="lazy">`
-                  : '<div class="search-result-poster"></div>'}
-                <div class="search-result-info">
-                  <p class="search-result-title">${m.title}</p>
-                  <p class="search-result-meta">${m.year || '—'} &middot; ★ ${m.rating}/10</p>
-                </div>
-              </a>`).join('');
+            drop.innerHTML = `<div class="search-drop-msg">No results for "${q}" — press Enter</div>`;
+            return;
           }
-          searchDropdown.classList.remove('hidden');
-        } catch(e) {}
-      }, 320);
+
+          drop.innerHTML = '';
+          results.slice(0, 8).forEach(m => {
+            const a = document.createElement('a');
+            a.className = 'search-drop-item';
+            a.href = `/movie/${m.id}`;
+            a.innerHTML = `
+              ${m.poster
+                ? `<img src="${m.poster}" class="search-drop-poster" alt="${m.title}" onerror="this.style.background='#2a2a2a'">`
+                : `<div class="search-drop-poster" style="display:flex;align-items:center;justify-content:center;color:#444;font-size:18px">🎬</div>`}
+              <div class="search-drop-info">
+                <div class="search-drop-title">${m.title}</div>
+                <div class="search-drop-meta">${m.year || '—'} · <span class="search-drop-rating">★ ${m.rating}</span></div>
+              </div>`;
+            drop.appendChild(a);
+          });
+
+          const footer = document.createElement('a');
+          footer.href = `/search?q=${encodeURIComponent(q)}`;
+          footer.className = 'search-drop-footer';
+          footer.textContent = `See all results for "${q}" →`;
+          drop.appendChild(footer);
+
+        } catch(e) {
+          drop.innerHTML = '<div class="search-drop-msg">Search unavailable right now.</div>';
+        }
+      }, 300);
     });
 
-    // Enter key submits
-    searchInput.addEventListener('keydown', e => {
-      if (e.key === 'Enter') doSearch();
-      if (e.key === 'Escape') searchDropdown.classList.add('hidden');
-    });
-
-    // Click outside closes
     document.addEventListener('click', e => {
       const wrap = document.getElementById('search-wrap');
-      if (wrap && !wrap.contains(e.target)) searchDropdown.classList.add('hidden');
+      if (wrap && !wrap.contains(e.target)) drop.style.display = 'none';
     });
-  }
+  })();
 
-  // ── BG posters ─────────────────────────────────
+  // ── BG Posters ───────────────────────────────────────────────────────────
   async function loadBgPosters() {
     try {
       const res  = await fetch('/api/bg-posters');

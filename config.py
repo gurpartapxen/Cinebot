@@ -12,6 +12,6 @@ class Config:
     SQLALCHEMY_DATABASE_URI        = get_db_url()
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     GEMINI_API_KEY                 = os.environ.get('GEMINI_API_KEY')
-    TMDB_API_KEY                   = os.environ.get('TMDB_API_KEY')
     TMDB_BASE_URL                  = 'https://api.themoviedb.org/3'
     TMDB_IMAGE_BASE                = 'https://image.tmdb.org/t/p/w500'
+    TMDB_READ_TOKEN = os.environ.get('TMDB_READ_TOKEN', '')
