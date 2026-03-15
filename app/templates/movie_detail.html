@@ -123,6 +123,7 @@
 <div class="modal-overlay hidden" id="rating-modal">
   <div class="modal-card">
     <div class="modal-header">
+      <button class="movie-btn-rate" onclick="openWatchModal({{ movie.id }}, '{{ movie.title }}')">Where to Watch</button>
       <p class="modal-title">Rate {{ movie.title }}</p>
       <button class="modal-close" onclick="closeModal()">&#x2715;</button>
     </div>
@@ -163,7 +164,25 @@ async function submitRating() {
   const data = await res.json();
   if (data.status === 'rated') { closeModal(); showToast('Rating saved!'); }
 }
+async function openWatchModal(movieId, title) {
+  // Show a simple modal with streaming info
+  const res  = await fetch(`/api/streaming/where/${movieId}`);
+  const data = await res.json();
+  const platforms = (data.platforms || []).filter(p => p.type === 'stream');
 
+  if (!platforms.length) {
+    showToast('Not found on tracked streaming platforms.');
+    return;
+  }
+
+  const names = platforms.map(p => p.name).join(', ');
+  showToast(`Available on: ${names}`);
+
+  // Open TMDB watch page for full details
+  if (data.tmdb_link) {
+    setTimeout(() => window.open(data.tmdb_link, '_blank'), 1500);
+  }
+}
 // ── Watchlist ────────────────────────────────────
 async function addToWatchlist() {
   const res  = await fetch('/api/watchlist/add', {

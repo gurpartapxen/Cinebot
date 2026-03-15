@@ -1353,3 +1353,9 @@ body.light .bubble-bot { background: #fff; }
   position: relative; z-index: 1;
 }
 .cta-btn:hover { transform: translateY(-3px); box-shadow: 0 14px 40px rgba(108,99,255,0.55); }
+<style>
+.platform-btn:hover .phover { opacity: 1 !important; }
+.platform-btn:hover { transform: translateY(-6px) scale(1.02) !important; box-shadow: 0 24px 56px rgba(0,0,0,0.6) !important; }
+.platform-btn { box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>

@@ -23,16 +23,18 @@ def create_app():
     def load_user(user_id):
         return User.query.get(int(user_id))
 
-    from app.routes.auth     import auth
-    from app.routes.chat     import chat
-    from app.routes.profile  import profile_bp
-    from app.routes.discover import discover_bp
-    from app.routes.social   import social_bp
+    from app.routes.auth      import auth
+    from app.routes.chat      import chat
+    from app.routes.profile   import profile_bp
+    from app.routes.discover  import discover_bp
+    from app.routes.social    import social_bp
+    from app.routes.streaming import streaming_bp
 
     app.register_blueprint(auth)
     app.register_blueprint(chat)
     app.register_blueprint(profile_bp)
     app.register_blueprint(discover_bp)
     app.register_blueprint(social_bp)
+    app.register_blueprint(streaming_bp)
 
     return app

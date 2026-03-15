@@ -130,6 +130,60 @@ class TMDBService:
             page += 1
         return all_results[:target]
 
+    def get_watch_providers(self, movie_id):
+        data = self._get(f'/movie/{movie_id}/watch/providers')
+        results = data.get('results', {})
+
+        # Try IN → US → GB → any available
+        region_data = (results.get('IN') or results.get('US') or
+                       results.get('GB') or next(iter(results.values()), {}))
+
+        platforms = []
+        seen = set()
+
+        for ptype in ['flatrate', 'rent', 'buy']:
+            for p in region_data.get(ptype, []):
+                if p['provider_name'] not in seen:
+                    seen.add(p['provider_name'])
+                    platforms.append({
+                        'name': p['provider_name'],
+                        'logo': f"https://image.tmdb.org/t/p/original{p['logo_path']}" if p.get('logo_path') else None,
+                        'type': 'stream' if ptype == 'flatrate' else ptype,
+                        'priority': p.get('display_priority', 99),
+                    })
+
+        return {
+            'platforms': sorted(platforms, key=lambda x: x['priority']),
+            'tmdb_link': region_data.get('link', f'https://www.themoviedb.org/movie/{movie_id}/watch'),
+        }
+
+    def get_movies_by_provider(self, provider_id, limit=40):
+        """Get movies available on a specific streaming platform."""
+        # Try IN region first, then US for broader results
+        results = self._get_multi_page('/discover/movie', {
+            'with_watch_providers': provider_id,
+            'watch_region': 'IN',
+            'sort_by': 'popularity.desc',
+        }, target=limit)
+
+        # If India returns nothing, try US
+        if not results:
+            results = self._get_multi_page('/discover/movie', {
+                'with_watch_providers': provider_id,
+                'watch_region': 'US',
+                'sort_by': 'popularity.desc',
+            }, target=limit)
+
+        # Final fallback — no region filter
+        if not results:
+            results = self._get_multi_page('/discover/movie', {
+                'with_watch_providers': provider_id,
+                'sort_by': 'popularity.desc',
+            }, target=limit)
+
+        print(f"Provider {provider_id}: {len(results)} results")
+        return self._parse(results)
+
     def get_popular(self, limit=60):
         results = self._get_multi_page('/movie/popular', target=limit)
         return self._parse(results)
