@@ -1,8 +1,15 @@
 import os
 
+def get_db_url():
+    url = os.environ.get('DATABASE_URL',
+          'mysql+pymysql://chatbot_user:chatbot123@localhost/movie_chatbot_db')
+    if url.startswith('mysql://'):
+        url = url.replace('mysql://', 'mysql+pymysql://', 1)
+    return url
+
 class Config:
-    SECRET_KEY                     = 'mysupersecretkey123'
-    SQLALCHEMY_DATABASE_URI        = 'mysql+pymysql://chatbot_user:chatbot123@localhost/movie_chatbot_db'
+    SECRET_KEY                     = os.environ.get('SECRET_KEY', 'mysupersecretkey123')
+    SQLALCHEMY_DATABASE_URI        = get_db_url()
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     GEMINI_API_KEY                 = os.environ.get('GEMINI_API_KEY')
     TMDB_API_KEY                   = os.environ.get('TMDB_API_KEY')
