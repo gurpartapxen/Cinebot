@@ -1,13 +1,16 @@
 import os
-os.environ['GEMINI_API_KEY'] = 'AIzaSyAPfboW0SNCYNHqQGn5Ki9tDiIzIdYahDY'
-os.environ['TMDB_API_KEY']   = '83fa498ec3c06e229e5332b90b7ca42a'
+
+# Fix Railway DATABASE_URL format
+db_url = os.environ.get('DATABASE_URL', '')
+if db_url.startswith('mysql://'):
+    os.environ['DATABASE_URL'] = db_url.replace('mysql://', 'mysql+pymysql://', 1)
 
 from app import create_app, db
 
 app = create_app()
 
+with app.app_context():
+    db.create_all()
+
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
-        print('Ready!')
     app.run(debug=False, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
