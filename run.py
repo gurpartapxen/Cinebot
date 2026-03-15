@@ -1,12 +1,11 @@
 import os
 
-# Fix Railway DATABASE_URL format
+# Auto-fix Railway MySQL URL format
 db_url = os.environ.get('DATABASE_URL', '')
 if db_url.startswith('mysql://'):
     os.environ['DATABASE_URL'] = db_url.replace('mysql://', 'mysql+pymysql://', 1)
 
 from app import create_app, db
-
 app = create_app()
 
 with app.app_context():
